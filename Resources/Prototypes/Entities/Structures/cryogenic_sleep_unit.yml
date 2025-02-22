@@ -62,3 +62,13 @@
     - type: ContainerSpawnPoint
       containerId: storage
       spawnType: LateJoin
+
+# This one only handles spawns for the ghost afterlife.
+- type: entity
+  parent: CryogenicSleepUnit
+  id: CryogenicSleepUnitSpawnerGhostAfterlife
+  suffix: Ghost Afterlife
+  components:
+    - type: ContainerSpawnPoint
+      containerId: storage
+      spawnType: GhostAfterlife

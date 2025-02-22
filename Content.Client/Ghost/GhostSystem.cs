@@ -200,5 +200,10 @@ namespace Content.Client.Ghost
         {
             GhostVisibility = visibility ?? !GhostVisibility;
         }
+
+        public void SpawnAtGhostAfterlife()
+        {
+            RaiseNetworkEvent(new GhostAfterlifeSpawnRequestEvent());
+        }
     }
 }

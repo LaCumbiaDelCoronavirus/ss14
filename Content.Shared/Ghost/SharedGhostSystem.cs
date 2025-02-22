@@ -60,6 +60,14 @@ namespace Content.Shared.Ghost
     }
 
     /// <summary>
+    /// A client to server request to spawn at the ghost afterlife
+    /// </summary>
+    [Serializable, NetSerializable]
+    public sealed class GhostAfterlifeSpawnRequestEvent : EntityEventArgs
+    {
+    }
+
+    /// <summary>
     /// A client to server request to get places a ghost can warp to.
     /// Response is sent via <see cref="GhostWarpsResponseEvent"/>
     /// </summary>
