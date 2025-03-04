@@ -12,21 +12,34 @@ namespace Content.Server.NPC.HTN.PrimitiveTasks.Operators.Interactions;
 public sealed partial class SwapToFreeHandOperator : HTNOperator
 {
     [Dependency] private readonly IEntityManager _entManager = default!;
+    private HandsSystem _handsSystem = default!;
 
+    public override void Initialize(IEntitySystemManager sysManager)
+    {
+        base.Initialize(sysManager);
+        _handsSystem = sysManager.GetEntitySystem<HandsSystem>();
+    }
     public override async Task<(bool Valid, Dictionary<string, object>? Effects)> Plan(NPCBlackboard blackboard, CancellationToken cancelToken)
     {
-        if (!blackboard.TryGetValue<List<string>>(NPCBlackboard.FreeHands, out var hands, _entManager) ||
-            !_entManager.TryGetComponent<HandsComponent>(blackboard.GetValue<EntityUid>(NPCBlackboard.Owner), out var handsComp))
+        if (!blackboard.TryGetValue<List<string>>(NPCBlackboard.FreeHands, out var freeHands, _entManager) ||
+            !_entManager.TryGetComponent<HandsComponent>(blackboard.GetValue<EntityUid>(NPCBlackboard.Owner), out var handsComponent))
         {
             return (false, null);
         }
 
-        foreach (var hand in hands)
+        var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
+
+        foreach (var hand in freeHands)
         {
+            // try to set active hand directly to one of our free hands. if we cant do that (reason e.x.: we are already using that hand as an active hand, which we can't then switch to), continue to next.
+            // if none of that works we eventually just fail (see the last return in this function)
+            if (!_handsSystem.TrySetActiveHand(owner, hand, handsComponent))
+                continue;
+
             return (true, new Dictionary<string, object>()
             {
                 {
-                    NPCBlackboard.ActiveHand, handsComp.Hands[hand]
+                    NPCBlackboard.ActiveHand, handsComponent.Hands[hand]
                 },
                 {
                     NPCBlackboard.ActiveHandFree, true
@@ -41,13 +54,21 @@ public sealed partial class SwapToFreeHandOperator : HTNOperator
     {
         // TODO: Need interaction cooldown
         var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
-        var handSystem = _entManager.System<HandsSystem>();
 
-        if (!handSystem.TrySelectEmptyHand(owner))
+        if (!blackboard.TryGetValue<List<string>>(NPCBlackboard.FreeHands, out var freeHands, _entManager) ||
+            !_entManager.TryGetComponent<HandsComponent>(blackboard.GetValue<EntityUid>(NPCBlackboard.Owner), out var handsComponent))
         {
             return HTNOperatorStatus.Failed;
         }
 
-        return HTNOperatorStatus.Finished;
+        foreach (var hand in freeHands)
+        {
+            // yay. yippee.
+            if (_handsSystem.TrySetActiveHand(owner, hand, handsComponent))
+                return HTNOperatorStatus.Finished;
+        }
+
+        // FUCK!!!
+        return HTNOperatorStatus.Failed;
     }
 }
