@@ -4,6 +4,7 @@ using Content.Shared.Interaction;
 using Content.Shared.Physics;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
+using Robust.Server.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Physics.Components;
 
@@ -13,6 +14,8 @@ public sealed partial class NPCCombatSystem
 {
     [Dependency] private readonly SharedCombatModeSystem _combat = default!;
     [Dependency] private readonly RotateToFaceSystem _rotate = default!;
+    [Dependency] private readonly EntityManager _entityManager = default!;
+    [Dependency] private readonly MapSystem _mapSystem = default!;
 
     private EntityQuery<CombatModeComponent> _combatQuery;
     private EntityQuery<NPCSteeringComponent> _steeringQuery;
@@ -118,6 +121,19 @@ public sealed partial class NPCCombatSystem
                 comp.ShootAccumulator = 0f;
                 continue;
             }
+            // trying to bolt a gun with no ammo is a bit stupid if it will just bolt open the next time you fire it
+            else if (_entityManager.TryGetComponent<ChamberMagazineAmmoProviderComponent>(gunUid, out var chamberAmmoProviderComponent) && chamberAmmoProviderComponent.BoltClosed == false && chamberAmmoProviderComponent.AutoCycle == true)
+            {
+                _gun.SetBoltClosed(gunUid, chamberAmmoProviderComponent, true, uid);
+
+                // couldn't bolt it for whatever reason so we fuck off
+                if (chamberAmmoProviderComponent.BoltClosed == false)
+                {
+                    comp.Status = CombatStatus.Unspecified;
+                    comp.ShootAccumulator = 0f;
+                    continue;
+                }
+            }
 
             comp.LOSAccumulator -= frameTime;
 
@@ -191,7 +207,7 @@ public sealed partial class NPCCombatSystem
 
             if (_mapManager.TryFindGridAt(xform.MapID, targetPos, out var gridUid, out var mapGrid))
             {
-                targetCordinates = new EntityCoordinates(gridUid, mapGrid.WorldToLocal(targetSpot));
+                targetCordinates = new EntityCoordinates(gridUid, _mapSystem.WorldToLocal(gridUid, mapGrid, targetSpot));
             }
             else
             {
