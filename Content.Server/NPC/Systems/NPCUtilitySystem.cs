@@ -8,6 +8,7 @@ using Content.Server.Nutrition.Components;
 using Content.Server.Nutrition.EntitySystems;
 using Content.Server.Storage.Components;
 using Content.Shared.Chemistry.EntitySystems;
+using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Damage;
 using Content.Shared.Examine;
 using Content.Shared.Fluids.Components;
@@ -250,20 +251,29 @@ public sealed class NPCUtilitySystem : EntitySystem
                 // TODO: Pathfind there, though probably do it in a separate con.
                 return 1f;
             }
-            case TargetAmmoMatchesCon:
+            case TargetMatchesSlotCon:
             {
-                if (!blackboard.TryGetValue(NPCBlackboard.ActiveHand, out Hand? activeHand, EntityManager) ||
-                    !TryComp<BallisticAmmoProviderComponent>(activeHand.HeldEntity, out var heldGun))
-                {
-                    return 0f;
-                }
+                    if (!blackboard.TryGetValue(NPCBlackboard.ActiveHand, out Hand? activeHand, EntityManager) ||
+                        !TryComp<ItemSlotsComponent>(activeHand.HeldEntity, out var itemSlotComponent))
+                    {
+                        return 0f;
+                    }
 
-                if (_whitelistSystem.IsWhitelistFailOrNull(heldGun.Whitelist, targetUid))
-                {
-                    return 0f;
-                }
+                    // if a slot is 1. not locked, and 2. the target item fits the whitelist for it, return 1
+                    var itemSlots = itemSlotComponent.Slots;
+                    foreach (var (slotId, slot) in itemSlots)
+                    {
+                        if (slot.Locked == true)
+                            continue;
 
-                return 1f;
+                        if (_whitelistSystem.IsWhitelistFailOrNull(slot.Whitelist, targetUid))
+                            continue;
+                        else
+                            return 1f;
+                    }
+
+                    // didn't find anything that matched that description
+                    return 0f;
             }
             case TargetDistanceCon:
             {
@@ -285,20 +295,20 @@ public sealed class NPCUtilitySystem : EntitySystem
             }
             case TargetAmmoCon:
             {
-                if (!HasComp<GunComponent>(targetUid))
-                    return 0f;
+                    if (!HasComp<GunComponent>(targetUid) && !HasComp<BallisticAmmoProviderComponent>(targetUid))
+                        return 0f;
 
-                var ev = new GetAmmoCountEvent();
-                RaiseLocalEvent(targetUid, ref ev);
+                    var ev = new GetAmmoCountEvent();
+                    RaiseLocalEvent(targetUid, ref ev);
 
-                if (ev.Count == 0)
-                    return 0f;
+                    if (ev.Count == 0)
+                        return 0f;
 
-                // Wat
-                if (ev.Capacity == 0)
-                    return 1f;
+                    // Wat
+                    if (ev.Capacity == 0)
+                        return 1f;
 
-                return (float) ev.Count / ev.Capacity;
+                    return (float) ev.Count / ev.Capacity;
             }
             case TargetHealthCon con:
             {

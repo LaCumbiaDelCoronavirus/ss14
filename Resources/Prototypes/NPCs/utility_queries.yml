@@ -10,19 +10,34 @@
       curve: !type:QuadraticCurve
 
 - type: utilityQuery
+  id: InventoryAmmo
+  query:
+    - !type:InventoryQuery
+    - !type:ComponentFilter
+      components:
+        - type: BallisticAmmoProvider
+        - type: Item
+  considerations:
+    - !type:TargetMatchesSlotCon
+      curve: !type:BoolCurve
+    - !type:TargetAmmoCon
+      curve: !type:QuadraticCurve
+
+- type: utilityQuery
   id: NearbyAmmo
   query:
     - !type:ComponentQuery
       components:
-        - type: Ammo
+        - type: BallisticAmmoProvider
         - type: Item
   considerations:
-    - !type:TargetAmmoMatchesCon
+    - !type:TargetMatchesSlotCon
       curve: !type:BoolCurve
     - !type:TargetDistanceCon
-      curve: !type:PresetCurve
+     curve: !type:PresetCurve
         preset: TargetDistance
-    # TODO: Get ammo count.
+    - !type:TargetAmmoCon
+      curve: !type:QuadraticCurve
     - !type:TargetAccessibleCon
       curve: !type:BoolCurve
 
