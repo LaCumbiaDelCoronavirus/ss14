@@ -9,17 +9,23 @@ public sealed partial class InteractWithOperator : HTNOperator
 {
     [Dependency] private readonly IEntityManager _entManager = default!;
     private SharedDoAfterSystem _doAfterSystem = default!;
+    private UseDelaySystem _useDelaySystem = default!;
+    private SharedCombatModeSystem _sharedCombatModeSystem = default!;
+    private InteractionSystem _interactionSystem = default!;
 
     public override void Initialize(IEntitySystemManager sysManager)
     {
         base.Initialize(sysManager);
         _doAfterSystem = sysManager.GetEntitySystem<SharedDoAfterSystem>();
+        _useDelaySystem = sysManager.GetEntitySystem<UseDelaySystem>();
+        _sharedCombatModeSystem = sysManager.GetEntitySystem<SharedCombatModeSystem>();
+        _interactionSystem = sysManager.GetEntitySystem<InteractionSystem>();
     }
 
     /// <summary>
     /// Key that contains the target entity.
     /// </summary>
-    [DataField(required: true)]
+    [DataField("targetKey", required: true)]
     public string TargetKey = default!;
 
     /// <summary>
@@ -69,7 +75,7 @@ public sealed partial class InteractWithOperator : HTNOperator
         }
 
 
-        if (_entManager.TryGetComponent<UseDelayComponent>(owner, out var useDelay) && _entManager.System<UseDelaySystem>().IsDelayed((owner, useDelay)) ||
+        if (_entManager.TryGetComponent<UseDelayComponent>(owner, out var useDelay) && _useDelaySystem.IsDelayed((owner, useDelay)) ||
             !blackboard.TryGetValue<EntityUid>(TargetKey, out var moveTarget, _entManager) ||
             !_entManager.TryGetComponent<TransformComponent>(moveTarget, out var targetXform))
         {
@@ -78,10 +84,10 @@ public sealed partial class InteractWithOperator : HTNOperator
 
         if (_entManager.TryGetComponent<CombatModeComponent>(owner, out var combatMode))
         {
-            _entManager.System<SharedCombatModeSystem>().SetInCombatMode(owner, false, combatMode);
+            _sharedCombatModeSystem.SetInCombatMode(owner, false, combatMode);
         }
 
-        _entManager.System<InteractionSystem>().UserInteraction(owner, targetXform.Coordinates, moveTarget);
+        _interactionSystem.UserInteraction(owner, targetXform.Coordinates, moveTarget);
 
         // Detect doAfter, save it, and don't exit from this operator
         if (doAfter != null && nextId != doAfter.NextId)

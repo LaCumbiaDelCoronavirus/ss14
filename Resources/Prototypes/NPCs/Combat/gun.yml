@@ -34,26 +34,24 @@
               proto: NearbyGunTargets
               key: Target
 
-# Selects ammo in range, then moves to it and picks it up
+# Looks for ammo in inventory.
 - type: htnCompound
-  id: PickupAmmoCompound
+  id: GetAmmoCompound
   branches:
-    # Find ammo then pick it up.
+    # Find ammo, switch hands, and THEN pick it up. It's necessary to query InventoryAmmo with the gun we want to use in the active hand.
     - tasks:
         - !type:HTNPrimitiveTask
           operator: !type:UtilityOperator
-            proto: NearbyAmmo
+            proto: InventoryAmmo
+            key: TargetAmmo
 
         - !type:HTNPrimitiveTask
-          operator: !type:MoveToOperator
+          operator: !type:SwapToFreeHandOperator
 
         - !type:HTNPrimitiveTask
-          preconditions:
-            - !type:TargetInRangePrecondition
-              targetKey: Target
-              rangeKey: InteractRange
-          operator: !type:InteractWithOperator
-            targetKey: Target
+          operator: !type:EquipOperator
+            target: TargetAmmo
+
 # TODO: Prioritise ammo for weapon we have equipped, otherwise grab anything if we don't have any.
 # TODO: Only works on ballistic
 
@@ -65,6 +63,7 @@
         - !type:HTNPrimitiveTask
           operator: !type:UtilityOperator
             proto: NearbyGuns
+            key: Gun
 
         - !type:HTNPrimitiveTask
           operator: !type:MoveToOperator
@@ -73,10 +72,33 @@
           preconditions:
             - !type:ActiveHandFreePrecondition
             - !type:TargetInRangePrecondition
-              targetKey: Target
+              targetKey: Gun
               rangeKey: InteractRange
-          operator: !type:InteractWithOperator
-            targetKey: Target
+          operator: !type:EquipOperator
+            target: Gun
+
+# Tries to look for a gun in inventory and take it, otherwise if no gun is found in inventory, tries to move to and pick up a gun from somewhere nearby on the ground (via PickupGunCompound).
+# I'm not sure if ClearActiveHandCompound should go after InventoryGuns, but it seems to make sense that way although other parts of the code do the opposite.
+- type: htnCompound
+  id: GetGunCompound
+  branches:
+    - tasks:
+        - !type:HTNPrimitiveTask
+          operator: !type:UtilityOperator
+            proto: InventoryGuns
+            key: Gun
+
+        #- !type:HTNCompoundTask
+        #  task: ClearActiveHandCompound
+
+        - !type:HTNPrimitiveTask
+          operator: !type:EquipOperator
+            target: Gun
+
+    # Couldn't find a gun in inventory, so alternatively acquire one from somewhere nearby on the ground
+    - tasks:
+        - !type:HTNCompoundTask
+          task: PickupGunCompound
 
 # TODO: Need a thing to recharge a laser gun
 # TODO: When selecting pickup guns also add chargers or easy container grabs.
@@ -98,52 +120,32 @@
   branches:
     # Move to target and shoot them if ammo
     - preconditions:
+        - !type:ActiveHandComponentPrecondition
+          components:
+            - type: Gun
         - !type:GunAmmoPrecondition
           minPercent: 0.001
       tasks:
         - !type:HTNCompoundTask
           task: GunCombatCompound
 
-    # Reload gun
-    # TODO
+    # If we don't have a gun or ammo in our hand: Take a gun from inventory, otherwise if we don't have one there, pick up a gun (with most ammo available) from somewhere on the ground nearby
+    - preconditions:
+        - !type:ActiveHandComponentPrecondition
+          components:
+            - type: Gun
+          invert: true
+        - !type:ActiveHandComponentPrecondition
+          components:
+            - type: BallisticAmmoProvider
+          invert: true
+      tasks:
+        - !type:HTNCompoundTask
+          task: GetGunCompound
 
-    # Equip a gun from inventory if one found, preferring over pickup.
-    # TODO: Doing inventory cleanly will be a PITA so deferring to later
-    # The issue is recursively checking items but also ignoring some recursive entities
-    # i.e. we need to recursively go into storage containers.
-    #- tasks:
-    #   - !type:HTNCompoundTask
-    #     task: ClearActiveHandCompound
-    #
-    #   - !type:HTNPrimitiveTask
-    #     operator: !type:UtilityOperator
-    #       proto: InventoryGuns
-    #
-    #   - !type:HTNPrimitiveTask
-    #     operator: !type:EquipOperator
 
-    # Pickup ammo if any nearby
-    #- preconditions:
-    #    - !type:GunAmmoPrecondition
-    #      maxPercent: 0.0
-    #  tasks:
-    #    - !type:HTNCompoundTask
-    #      task: ClearActiveHandCompound
-#
-#        - !type:HTNCompoundTask
-#          task: PickupAmmoCompound
-
-    # Pickup gun with ammo if we have no ammo
-    -  preconditions:
-         - !type:ActiveHandComponentPrecondition
-           components:
-             - type: Gun
-           invert: true
-       tasks:
-         - !type:HTNCompoundTask
-           task: PickupGunCompound
-
-    # Discard gun if no ammo
+      # Reload gun:
+      # Try to find ammo first looking in bag, (which isnt very performant but if otherwise, you could cheese it by using ammo as bait) and then (TODO:, !!!!) look nearby too. Continue if we can't find any
     - preconditions:
         - !type:ActiveHandComponentPrecondition
           components:
@@ -152,8 +154,40 @@
           maxPercent: 0.001
       tasks:
         - !type:HTNPrimitiveTask
+          operator: !type:UtilityOperator
+            proto: InventoryAmmo
+            key: TargetAmmo
+
+        - !type:HTNPrimitiveTask
+          operator: !type:SwapToFreeHandOperator
+
+        - !type:HTNPrimitiveTask
+          operator: !type:GunEjectAmmoOperator
+            targetKey: Gun
+
+        # we don't need range check for equipping because we're only taking ammo from our inventory, so who cares
+        - !type:HTNPrimitiveTask
+          operator: !type:EquipOperator
+            target: TargetAmmo
+
+        - !type:HTNPrimitiveTask
+          operator: !type:InteractWithOperator
+            targetKey: Gun
+
+        # It's jank but, basically just put the gun back into our active hand (since we can't swap without alot of jank)
+        - !type:HTNPrimitiveTask
+          operator: !type:EquipOperator
+            target: Gun
+
+    - preconditions:
+        - !type:ActiveHandComponentPrecondition
+          components:
+            - type: Gun
+        - !type:GunAmmoPrecondition
+          maxPercent: 0.001
+        # Throw the gun away who cares
+      tasks:
+        - !type:HTNPrimitiveTask
           preconditions:
             - !type:ActiveHandEntityPrecondition
           operator: !type:DropOperator
-
-# TODO: Reload a nearby gun

@@ -287,6 +287,7 @@ public sealed partial class NPCBlackboard : IEnumerable<KeyValuePair<string, obj
     public const string Access = "Access";
     public const string ActiveHand = "ActiveHand";
     public const string ActiveHandFree = "ActiveHandFree";
+    public const string ActiveHandItem = "ActiveHandItem";
     public const string CanMove = "CanMove";
     public const string FreeHands = "FreeHands";
     public const string FollowTarget = "FollowTarget";

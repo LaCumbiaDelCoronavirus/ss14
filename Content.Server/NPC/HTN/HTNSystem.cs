@@ -333,7 +333,7 @@ public sealed class HTNSystem : EntitySystem
             RequestPlan(component);
         }
 
-        // Getting a new plan so do nothing.
+        // Getting a new plan so do nothing, until RequestPlan sets a new plan for us to follow.
         if (component.Plan == null)
             return;
 

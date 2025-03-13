@@ -8,7 +8,8 @@ namespace Content.Shared.Weapons.Ranged.Systems;
 
 public abstract partial class SharedGunSystem
 {
-    protected const string MagazineSlot = "gun_magazine";
+    // I don't see why this can't be public. used by GunEjectAmmoContainerOperator.cs as of writing this
+    public const string MagazineSlot = "gun_magazine";
 
     protected virtual void InitializeMagazine()
     {

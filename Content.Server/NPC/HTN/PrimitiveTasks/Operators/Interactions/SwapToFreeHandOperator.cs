@@ -7,7 +7,7 @@ namespace Content.Server.NPC.HTN.PrimitiveTasks.Operators.Interactions;
 
 
 /// <summary>
-/// Swaps to any free hand.
+/// Swaps to any free hand. Finishes if active hand was changed to another, fails otherwise.
 /// </summary>
 public sealed partial class SwapToFreeHandOperator : HTNOperator
 {
@@ -21,29 +21,30 @@ public sealed partial class SwapToFreeHandOperator : HTNOperator
     }
     public override async Task<(bool Valid, Dictionary<string, object>? Effects)> Plan(NPCBlackboard blackboard, CancellationToken cancelToken)
     {
+        var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
+
         if (!blackboard.TryGetValue<List<string>>(NPCBlackboard.FreeHands, out var freeHands, _entManager) ||
-            !_entManager.TryGetComponent<HandsComponent>(blackboard.GetValue<EntityUid>(NPCBlackboard.Owner), out var handsComponent))
+            !_entManager.TryGetComponent<HandsComponent>(owner, out var handsComponent) || handsComponent == null)
         {
             return (false, null);
         }
 
-        var owner = blackboard.GetValue<EntityUid>(NPCBlackboard.Owner);
+        var activeHand = handsComponent.ActiveHand;
 
-        foreach (var hand in freeHands)
+        foreach (var handKey in freeHands)
         {
-            // try to set active hand directly to one of our free hands. if we cant do that (reason e.x.: we are already using that hand as an active hand, which we can't then switch to), continue to next.
-            // if none of that works we eventually just fail (see the last return in this function)
-            if (!_handsSystem.TrySetActiveHand(owner, hand, handsComponent))
+            var hand = handsComponent.Hands[handKey];
+            if (hand == null)
                 continue;
+            // if we cant do this (reason e.x.: we are already using that hand as an active hand, which we can't then switch to) then continue to next...
+            // ... unless the hand is our active hand and also free
+            //if (!_handsSystem.TrySetActiveHand(owner, handKey, handsComponent) && hand != activeHand)
+            //    continue;
 
             return (true, new Dictionary<string, object>()
             {
-                {
-                    NPCBlackboard.ActiveHand, handsComponent.Hands[hand]
-                },
-                {
-                    NPCBlackboard.ActiveHandFree, true
-                },
+                {NPCBlackboard.ActiveHand, handsComponent.Hands[handKey]},
+                {NPCBlackboard.ActiveHandFree, true}, // ActiveHandEntity
             });
         }
 
@@ -61,10 +62,15 @@ public sealed partial class SwapToFreeHandOperator : HTNOperator
             return HTNOperatorStatus.Failed;
         }
 
-        foreach (var hand in freeHands)
+        blackboard.TryGetValue<Hand?>(NPCBlackboard.ActiveHand, out var activeHand, _entManager);
+
+        foreach (var handKey in freeHands)
         {
+            var hand = handsComponent.Hands[handKey];
+            if (activeHand != null && hand == activeHand)
+                return HTNOperatorStatus.Finished;
             // yay. yippee.
-            if (_handsSystem.TrySetActiveHand(owner, hand, handsComponent))
+            if (_handsSystem.TrySetActiveHand(owner, handKey, handsComponent))
                 return HTNOperatorStatus.Finished;
         }
 
