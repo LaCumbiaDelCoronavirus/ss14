@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Content.Server.Hands.Systems;
 using Content.Shared.Hands.Components;
+using Robust.Shared.Utility;
 
 namespace Content.Server.NPC.HTN.PrimitiveTasks.Operators.Interactions;
 
@@ -31,20 +32,29 @@ public sealed partial class SwapToFreeHandOperator : HTNOperator
 
         var activeHand = handsComponent.ActiveHand;
 
+        // PLS NO
+        if (activeHand == null)
+            // FUCK
+            return (false, null);
+
         foreach (var handKey in freeHands)
         {
             var hand = handsComponent.Hands[handKey];
-            if (hand == null)
-                continue;
+
             // if we cant do this (reason e.x.: we are already using that hand as an active hand, which we can't then switch to) then continue to next...
             // ... unless the hand is our active hand and also free
-            //if (!_handsSystem.TrySetActiveHand(owner, handKey, handsComponent) && hand != activeHand)
-            //    continue;
+            if (hand == null)
+                continue;
+
+            var newFreeHandsList = freeHands.Clone();
+            newFreeHandsList.Remove(handKey);
+            newFreeHandsList.Add(activeHand.Name);
 
             return (true, new Dictionary<string, object>()
             {
-                {NPCBlackboard.ActiveHand, handsComponent.Hands[handKey]},
+                {NPCBlackboard.ActiveHand, hand},
                 {NPCBlackboard.ActiveHandFree, true}, // ActiveHandEntity
+                {NPCBlackboard.FreeHands, newFreeHandsList}, // bro
             });
         }
 

@@ -56,7 +56,7 @@ public sealed partial class GunEjectAmmoOperator : HTNOperator
         if (!blackboard.TryGetValue<EntityUid>(TargetKey, out var gun, _entityManager) || !_entityManager.TryGetComponent<GunComponent>(gun, out var gunComponent))
             return HTNOperatorStatus.Failed;
 
-        // NOTE: This probably won't work with stuff that has multiple different AmmoProvider components. Though it will be very stupid if something does that and it will probably be bugged by itself anyway.
+        // NOTE: This probably won't work with stuff that has multiple AmmoProvider components. Nothing is supposed to have more than one of those though,
         // eject magazine. we can just check for ItemSlotsComponent; we don't actually need to check for the chamber+mag & just mag ammo provider components
         if (_entityManager.TryGetComponent<ItemSlotsComponent>(gun, out var itemSlotsComponent))
         {
@@ -69,7 +69,7 @@ public sealed partial class GunEjectAmmoOperator : HTNOperator
             // TryEject will return false if there was no item in the slot but that's good enough for what we're doing here, so we don't fail the operator if TryEject fails AND the slot is empty.
             // wasSlotEmpty is defined before TryEject is called because TryEject empties the slot which would make it true if called after TryEject. duh. i absolutely don't need to explain that in depth (or at all) but whatever.
             // TLDR only fail if TryEject failed for a reason other than the slot being empty
-            if (!_itemSlotsSystem.TryEject(gun, magazineContainerSlot, null, out var magazine) && wasSlotEmpty == false)
+            if (wasSlotEmpty == false && !_itemSlotsSystem.TryEject(gun, magazineContainerSlot, null, out var magazine))
                 return HTNOperatorStatus.Failed;
         }
         // empty revolver cylinder

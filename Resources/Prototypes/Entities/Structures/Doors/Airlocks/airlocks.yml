@@ -52,6 +52,14 @@
 
 - type: entity
   parent: Airlock
+  id: AirlockLabs
+  suffix: Labs
+  components:
+  - type: Sprite
+    sprite: Structures/Doors/Airlocks/Standard/labs.rsi
+
+- type: entity
+  parent: Airlock
   id: AirlockMedical
   suffix: Medical
   components:

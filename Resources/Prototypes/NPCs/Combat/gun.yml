@@ -67,7 +67,7 @@
 
         - !type:HTNPrimitiveTask
           operator: !type:MoveToOperator
-
+        # This will actually take guns out of people's hands, out of closed lockers, etc., if it's in range and the NPC was already trying to pick up the gun.
         - !type:HTNPrimitiveTask
           preconditions:
             - !type:ActiveHandFreePrecondition
