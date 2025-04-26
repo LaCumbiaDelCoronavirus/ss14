@@ -1,15 +1,17 @@
 using Robust.Shared.Serialization;
 using Robust.Shared.GameStates;
 
-namespace Content.Shared.Radio.Components;
+namespace Content.Shared.SignalJammer.Components;
 
 /// <summary>
-/// When activated (<see cref="ActiveRadioJammerComponent"/>) prevents from sending messages in range
-/// Suit sensors will also stop working.
+/// When activated (<see cref="ActiveSignalJammerComponent"/>)
+/// This will, for anything in range: Prevent from sending radio messages,
+/// Make suit sensors nonfunctional,
+/// Make the Station AI unable to interact with anything
 /// </summary>
 [NetworkedComponent, RegisterComponent]
 [AutoGenerateComponentState]
-public sealed partial class RadioJammerComponent : Component
+public sealed partial class SignalJammerComponent : Component
 {
     [DataDefinition]
     public partial struct RadioJamSetting
@@ -55,7 +57,7 @@ public sealed partial class RadioJammerComponent : Component
 }
 
 [Serializable, NetSerializable]
-public enum RadioJammerChargeLevel : byte
+public enum SignalJammerChargeLevel : byte
 {
     Low,
     Medium,
@@ -63,13 +65,13 @@ public enum RadioJammerChargeLevel : byte
 }
 
 [Serializable, NetSerializable]
-public enum RadioJammerLayers : byte
+public enum SignalJammerLayers : byte
 {
     LED
 }
 
 [Serializable, NetSerializable]
-public enum RadioJammerVisuals : byte
+public enum SignalJammerVisuals : byte
 {
     ChargeLevel,
     LEDOn

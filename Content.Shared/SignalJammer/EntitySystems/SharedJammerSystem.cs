@@ -3,8 +3,9 @@ using Content.Shared.Verbs;
 using Content.Shared.Examine;
 using Content.Shared.Radio.Components;
 using Content.Shared.DeviceNetwork.Systems;
+using Content.Shared.SignalJammer.Components;
 
-namespace Content.Shared.Radio.EntitySystems;
+namespace Content.Shared.SignalJammer.EntitySystems;
 
 public abstract class SharedJammerSystem : EntitySystem
 {
@@ -16,11 +17,11 @@ public abstract class SharedJammerSystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<RadioJammerComponent, GetVerbsEvent<Verb>>(OnGetVerb);
-        SubscribeLocalEvent<RadioJammerComponent, ExaminedEvent>(OnExamine);
+        SubscribeLocalEvent<SignalJammerComponent, GetVerbsEvent<Verb>>(OnGetVerb);
+        SubscribeLocalEvent<SignalJammerComponent, ExaminedEvent>(OnExamine);
     }
 
-    private void OnGetVerb(Entity<RadioJammerComponent> entity, ref GetVerbsEvent<Verb> args)
+    private void OnGetVerb(Entity<SignalJammerComponent> entity, ref GetVerbsEvent<Verb> args)
     {
         if (!args.CanAccess || !args.CanInteract)
             return;
@@ -56,39 +57,39 @@ public abstract class SharedJammerSystem : EntitySystem
         }
     }
 
-    private void OnExamine(Entity<RadioJammerComponent> ent, ref ExaminedEvent args)
+    private void OnExamine(Entity<SignalJammerComponent> ent, ref ExaminedEvent args)
     {
         if (args.IsInDetailsRange)
         {
-            var powerIndicator = HasComp<ActiveRadioJammerComponent>(ent)
-                ? Loc.GetString("radio-jammer-component-examine-on-state")
-                : Loc.GetString("radio-jammer-component-examine-off-state");
+            var powerIndicator = HasComp<ActiveSignalJammerComponent>(ent)
+                ? Loc.GetString("signal-jammer-component-examine-on-state")
+                : Loc.GetString("signal-jammer-component-examine-off-state");
             args.PushMarkup(powerIndicator);
 
             var powerLevel = Loc.GetString(ent.Comp.Settings[ent.Comp.SelectedPowerLevel].Name);
-            var switchIndicator = Loc.GetString("radio-jammer-component-switch-setting", ("powerLevel", powerLevel));
+            var switchIndicator = Loc.GetString("signal-jammer-component-switch-setting", ("powerLevel", powerLevel));
             args.PushMarkup(switchIndicator);
         }
     }
 
-    public float GetCurrentWattage(Entity<RadioJammerComponent> jammer)
+    public float GetCurrentWattage(Entity<SignalJammerComponent> jammer)
     {
         return jammer.Comp.Settings[jammer.Comp.SelectedPowerLevel].Wattage;
     }
 
-    public float GetCurrentRange(Entity<RadioJammerComponent> jammer)
+    public float GetCurrentRange(Entity<SignalJammerComponent> jammer)
     {
         return jammer.Comp.Settings[jammer.Comp.SelectedPowerLevel].Range;
     }
 
     protected void ChangeLEDState(Entity<AppearanceComponent?> ent, bool isLEDOn)
     {
-        _appearance.SetData(ent, RadioJammerVisuals.LEDOn, isLEDOn, ent.Comp);
+        _appearance.SetData(ent, SignalJammerVisuals.LEDOn, isLEDOn, ent.Comp);
     }
 
-    protected void ChangeChargeLevel(Entity<AppearanceComponent?> ent, RadioJammerChargeLevel chargeLevel)
+    protected void ChangeChargeLevel(Entity<AppearanceComponent?> ent, SignalJammerChargeLevel chargeLevel)
     {
-        _appearance.SetData(ent, RadioJammerVisuals.ChargeLevel, chargeLevel, ent.Comp);
+        _appearance.SetData(ent, SignalJammerVisuals.ChargeLevel, chargeLevel, ent.Comp);
     }
 
 }

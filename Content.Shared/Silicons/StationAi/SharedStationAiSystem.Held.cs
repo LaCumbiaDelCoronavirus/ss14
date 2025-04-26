@@ -228,6 +228,21 @@ public abstract class BaseStationAiAction
     public EntityUid User { get; set; }
 }
 
+/// <summary>
+/// Use this event to cancel AI actions.
+/// For example, used by a radio jammer.
+/// </summary>
+[Serializable, NetSerializable]
+public record struct StationAiActionAttemptEvent(EntityUid User)
+{
+    public EntityUid User { get; set; } = User;
+    public bool Cancelled = false;
+    /// <summary>
+    /// Locale ID for the message that the AI player gets if this event is cancelled.
+    /// </summary>
+    public LocId? CancellationText = null;
+}
+
 // No idea if there's a better way to do this.
 /// <summary>
 /// Grab actions possible for an AI on the target entity.

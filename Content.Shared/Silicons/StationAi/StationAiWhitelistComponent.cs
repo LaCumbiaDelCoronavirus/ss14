@@ -10,4 +10,10 @@ public sealed partial class StationAiWhitelistComponent : Component
 {
     [DataField, AutoNetworkedField]
     public bool Enabled = true;
+
+    /// <summary>
+    /// Can this still be interacted with even when it's being jammed by a signal jammer, etc.?
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public bool BypassesJamming = true;
 }

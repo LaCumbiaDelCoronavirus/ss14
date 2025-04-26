@@ -1,31 +1,31 @@
 - type: entity
-  name: radio jammer
+  name: signal jammer
   parent: [BaseItem, BaseSyndicateContraband]
-  id: RadioJammer
-  description: This device will disrupt any nearby outgoing radio communication as well as suit sensors when activated.
+  id: SignalJammer
+  description: This device will disrupt any nearby outgoing radio communication as well as suit sensors and incoming AI interactions when activated. Does not block AI vision, however.
   components:
   - type: Sprite
     sprite: Objects/Devices/jammer.rsi
     layers:
         - state: jammer
         - state: jammer_high_charge
-          map: ["enum.RadioJammerLayers.LED"]
+          map: ["enum.SignalJammerLayers.LED"]
           shader: unshaded
           visible: false
-  - type: RadioJammer
+  - type: SignalJammer
     settings:
     - wattage: 1
       range: 2.5
-      message: radio-jammer-component-set-message-low
-      name: radio-jammer-component-setting-low
+      message: signal-jammer-component-set-message-low
+      name: signal-jammer-component-setting-low
     - wattage: 2
       range: 6
-      message: radio-jammer-component-set-message-medium
-      name: radio-jammer-component-setting-medium
+      message: signal-jammer-component-set-message-medium
+      name: signal-jammer-component-setting-medium
     - wattage: 12
       range: 12
-      message: radio-jammer-component-set-message-high
-      name: radio-jammer-component-setting-high
+      message: signal-jammer-component-set-message-high
+      name: signal-jammer-component-setting-high
   - type: PowerCellSlot
     cellSlotId: cell_slot
   - type: ContainerContainer
@@ -39,12 +39,12 @@
   - type: Appearance
   - type: GenericVisualizer
     visuals:
-      enum.RadioJammerVisuals.LEDOn:
-        RadioJammerLayers.LED:
+      enum.SignalJammerVisuals.LEDOn:
+        SignalJammerLayers.LED:
           True: { visible: True }
           False: { visible: False }
-      enum.RadioJammerVisuals.ChargeLevel:
-        RadioJammerLayers.LED:
+      enum.SignalJammerVisuals.ChargeLevel:
+        SignalJammerLayers.LED:
           Low: {state: jammer_low_charge}
           Medium: {state: jammer_medium_charge}
           High: {state: jammer_high_charge}

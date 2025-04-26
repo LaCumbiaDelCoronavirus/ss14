@@ -610,3 +610,6 @@ MediumXenoArtifact: ComplexXenoArtifact
 SimpleXenoArtifactItem: ComplexXenoArtifactItem
 MediumXenoArtifactItem: ComplexXenoArtifactItem
 VariedXenoArtifactItem: ComplexXenoArtifactItem
+
+# 2025-04-27
+RadioJammer: SignalJammer
