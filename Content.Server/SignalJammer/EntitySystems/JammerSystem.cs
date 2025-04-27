@@ -3,13 +3,11 @@ using Content.Server.PowerCell;
 using Content.Shared.DeviceNetwork.Components;
 using Content.Shared.Interaction;
 using Content.Shared.PowerCell.Components;
-using Content.Shared.Radio.EntitySystems;
 using Content.Shared.Radio.Components;
 using Content.Shared.DeviceNetwork.Systems;
 using Content.Shared.SignalJammer.Components;
 using Content.Shared.SignalJammer.EntitySystems;
 using Content.Shared.Silicons.StationAi;
-using System.Reflection.Metadata;
 
 namespace Content.Server.Radio.EntitySystems;
 
@@ -17,10 +15,7 @@ public sealed class JammerSystem : SharedJammerSystem
 {
     [Dependency] private readonly PowerCellSystem _powerCell = default!;
     [Dependency] private readonly BatterySystem _battery = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] private readonly SharedDeviceNetworkJammerSystem _jammer = default!;
-
-    static LocId _aiActionJammedMessage = "";
 
     public override void Initialize()
     {
@@ -31,10 +26,6 @@ public sealed class JammerSystem : SharedJammerSystem
 
         // Radio events
         SubscribeLocalEvent<RadioSendAttemptEvent>(OnRadioSendAttempt);
-
-        // AI events
-        // literally anything
-        SubscribeLocalEvent<Component, StationAiActionAttemptEvent>(OnAIActionAttempt);
     }
 
     public override void Update(float frameTime)
@@ -108,35 +99,11 @@ public sealed class JammerSystem : SharedJammerSystem
         }
     }
 
-    private void OnAIActionAttempt(Entity<Component> ent, ref StationAiActionAttemptEvent args)
-    {
-        if (ShouldCancelSend(ent.Owner))
-        {
-            args.Cancelled = true;
-            args.CancellationText = _aiActionJammedMessage;
-        }
-    }
     private void OnRadioSendAttempt(ref RadioSendAttemptEvent args)
     {
         if (ShouldCancelSend(args.RadioSource))
         {
             args.Cancelled = true;
         }
-    }
-
-    private bool ShouldCancelSend(EntityUid sourceUid)
-    {
-        var source = Transform(sourceUid).Coordinates;
-        var query = EntityQueryEnumerator<ActiveSignalJammerComponent, SignalJammerComponent, TransformComponent>();
-
-        while (query.MoveNext(out var uid, out _, out var jam, out var transform))
-        {
-            if (_transform.InRange(source, transform.Coordinates, GetCurrentRange((uid, jam))))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

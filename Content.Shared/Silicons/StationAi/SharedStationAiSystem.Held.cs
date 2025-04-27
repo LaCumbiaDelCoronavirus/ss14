@@ -16,6 +16,7 @@ public abstract partial class SharedStationAiSystem
 
     //TODO: Fix this, please
     private const string JobNameLocId = "job-name-station-ai";
+    private static string _deviceUnresponsiveLocId = "ai-device-not-responding";
 
     private void InitializeHeld()
     {
@@ -49,7 +50,7 @@ public abstract partial class SharedStationAiSystem
         if (!TryGetCore(ent.Owner, out var core) || core.Comp?.RemoteEntity == null)
             return;
 
-        _xforms.DropNextTo(core.Comp.RemoteEntity.Value, core.Owner) ;
+        _xforms.DropNextTo(core.Comp.RemoteEntity.Value, core.Owner);
     }
 
     /// <summary>
@@ -113,7 +114,7 @@ public abstract partial class SharedStationAiSystem
             return;
 
         ev.Event.User = ev.Actor;
-        RaiseLocalEvent(target.Value, (object) ev.Event);
+        RaiseLocalEvent(target.Value, (object)ev.Event);
     }
 
     private void OnMessageAttempt(Entity<StationAiWhitelistComponent> ent, ref BoundUserInterfaceMessageAttempt ev)
@@ -133,25 +134,41 @@ public abstract partial class SharedStationAiSystem
                 return;
             }
 
-            // Don't allow the AI to interact with anything that it isn't allowed to (ex. AI wire is cut)
-            if (whitelistComponent is { Enabled: false })
+            // Don't allow the AI to interact with anything that it isn't allowed to (e.x. AI wire is cut or the device is signal-jammed (if applicable))
+            var attemptActionEvent = AttemptTargettedAiAction(ev.Target);
+            if (attemptActionEvent.Cancelled || (whitelistComponent != null && !whitelistComponent.Enabled))
             {
-                ShowDeviceNotRespondingPopup(ev.Actor);
+                if (attemptActionEvent.CancellationText != null)
+                    ShowDeviceNotRespondingPopup(ev.Actor, attemptActionEvent.CancellationText);
             }
+
+
             ev.Cancel();
         }
     }
 
     private void OnHeldInteraction(Entity<StationAiHeldComponent> ent, ref InteractionAttemptEvent args)
     {
-        // Cancel if it's not us or something with a whitelist, or whitelist is disabled.
-        args.Cancelled = (!TryComp(args.Target, out StationAiWhitelistComponent? whitelistComponent)
-                          || !whitelistComponent.Enabled)
-                         && ent.Owner != args.Target
-                         && args.Target != null;
-        if (whitelistComponent is { Enabled: false })
+        // Cancel if it's either us, something without a whitelist, whitelist is disabled, or it is in any other way blocked.
+        if (!TryComp(args.Target, out StationAiWhitelistComponent? whitelistComponent))
         {
-            ShowDeviceNotRespondingPopup(ent.Owner);
+            args.Cancelled = true;
+            return;
+        }
+
+        var attemptActionEvent = AttemptTargettedAiAction(args.Target!.Value);
+        if (attemptActionEvent.Cancelled || !whitelistComponent.Enabled)
+        {
+            if (attemptActionEvent.CancellationText != null)
+                ShowDeviceNotRespondingPopup(ent.Owner, attemptActionEvent.CancellationText);
+
+            args.Cancelled = true;
+            return;
+        }
+
+        if (ent.Owner == args.Target)
+        {
+            args.Cancelled = true;
         }
     }
 
@@ -188,9 +205,9 @@ public abstract partial class SharedStationAiSystem
         args.Verbs.Add(verb);
     }
 
-    private void ShowDeviceNotRespondingPopup(EntityUid toEntity)
+    private void ShowDeviceNotRespondingPopup(EntityUid toEntity, string? popupLoc = null)
     {
-        _popup.PopupClient(Loc.GetString("ai-device-not-responding"), toEntity, PopupType.MediumCaution);
+        _popup.PopupClient(Loc.GetString(popupLoc ?? _deviceUnresponsiveLocId), toEntity, PopupType.MediumCaution);
     }
 }
 
@@ -224,21 +241,25 @@ public sealed class StationAiRadial : BaseStationAiAction
 [Serializable, NetSerializable]
 public abstract class BaseStationAiAction
 {
-    [field:NonSerialized]
+    [field: NonSerialized]
     public EntityUid User { get; set; }
 }
 
 /// <summary>
 /// Use this event to cancel AI actions.
-/// For example, used by a radio jammer.
+/// For example, when a signal jammer is used near the entity, or the entity's StationAiWhitelistComponent is set to disabled.
 /// </summary>
+/// <remarks>
+/// CancellationText might get overwritten by something else so don't set it to something that you have to display.
+/// </remarks>
 [Serializable, NetSerializable]
-public record struct StationAiActionAttemptEvent(EntityUid User)
+public record struct StationAiActionAttemptEvent()
 {
-    public EntityUid User { get; set; } = User;
     public bool Cancelled = false;
+
     /// <summary>
-    /// Locale ID for the message that the AI player gets if this event is cancelled.
+    /// Locale ID for the popup that the AI player gets if this event is cancelled.
+    /// This may be overriden.
     /// </summary>
     public LocId? CancellationText = null;
 }

@@ -19,6 +19,7 @@ electrify-door-off = Disable overcharge
 
 toggle-light = Toggle light
 
+# this is also shown as a popup when the device is blocked by a signal jammer
 ai-device-not-responding = Device is not responding
 
 ai-consciousness-download-warning = Your consciousness is being downloaded.

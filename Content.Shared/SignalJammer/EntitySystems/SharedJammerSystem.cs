@@ -4,6 +4,7 @@ using Content.Shared.Examine;
 using Content.Shared.Radio.Components;
 using Content.Shared.DeviceNetwork.Systems;
 using Content.Shared.SignalJammer.Components;
+using Content.Shared.Silicons.StationAi;
 
 namespace Content.Shared.SignalJammer.EntitySystems;
 
@@ -11,7 +12,11 @@ public abstract class SharedJammerSystem : EntitySystem
 {
     [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
     [Dependency] private readonly SharedDeviceNetworkJammerSystem _jammer = default!;
+    [Dependency] private readonly SharedTransformSystem _transform = default!;
     [Dependency] protected readonly SharedPopupSystem Popup = default!;
+
+    // this LocId is set as such incase someone wants it to be different
+    static LocId _aiActionJammedMessage = "ai-device-not-responding";
 
     public override void Initialize()
     {
@@ -19,6 +24,10 @@ public abstract class SharedJammerSystem : EntitySystem
 
         SubscribeLocalEvent<SignalJammerComponent, GetVerbsEvent<Verb>>(OnGetVerb);
         SubscribeLocalEvent<SignalJammerComponent, ExaminedEvent>(OnExamine);
+
+        // AI events
+        // literally anything
+        SubscribeLocalEvent<StationAiWhitelistComponent, StationAiActionAttemptEvent>(OnAIActionAttempt);
     }
 
     private void OnGetVerb(Entity<SignalJammerComponent> entity, ref GetVerbsEvent<Verb> args)
@@ -92,4 +101,31 @@ public abstract class SharedJammerSystem : EntitySystem
         _appearance.SetData(ent, SignalJammerVisuals.ChargeLevel, chargeLevel, ent.Comp);
     }
 
+    protected bool ShouldCancelSend(EntityUid sourceUid)
+    {
+        var source = Transform(sourceUid).Coordinates;
+        var query = EntityQueryEnumerator<ActiveSignalJammerComponent, SignalJammerComponent, TransformComponent>();
+
+        while (query.MoveNext(out var uid, out _, out var jam, out var transform))
+        {
+            if (_transform.InRange(source, transform.Coordinates, GetCurrentRange((uid, jam))))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void OnAIActionAttempt(Entity<StationAiWhitelistComponent> entity, ref StationAiActionAttemptEvent args)
+    {
+        if (entity.Comp.BypassesJamming)
+            return;
+
+        if (ShouldCancelSend(entity.Owner))
+        {
+            args.Cancelled = true;
+            args.CancellationText = _aiActionJammedMessage;
+        }
+    }
 }
