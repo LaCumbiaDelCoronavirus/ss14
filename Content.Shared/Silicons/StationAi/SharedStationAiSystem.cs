@@ -28,6 +28,7 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Content.Shared.Silicons.StationAi;
 
@@ -543,17 +544,53 @@ public abstract partial class SharedStationAiSystem : EntitySystem
 
     /// <summary>
     /// Returns a <see cref="StationAiActionAttemptEvent"/> raised on the target entity.
-    /// If attempt was cancelled, shows a popup with the corresponding <see cref="StationAiActionAttemptEvent.CancellationText"/>.
     /// </summary>
     public StationAiActionAttemptEvent AttemptTargettedAiAction(EntityUid target)
     {
         var attemptEvent = new StationAiActionAttemptEvent();
         RaiseLocalEvent(target, attemptEvent);
 
-        if (attemptEvent.Cancelled && attemptEvent.CancellationText != null)
-            _popup.PopupClient(Loc.GetString(attemptEvent.CancellationText), target);
-
         return attemptEvent;
+    }
+
+    /// <summary>
+    /// Returns the Cancelled field of a <see cref="StationAiActionAttemptEvent"/> raised on the target entity.
+    /// </summary>
+    public bool AttemptTargettedAiAction(EntityUid target, out StationAiActionAttemptEvent attemptEvent)
+    {
+        attemptEvent = new StationAiActionAttemptEvent();
+        RaiseLocalEvent(target, attemptEvent);
+
+        return attemptEvent.Cancelled;
+    }
+
+    /// <summary>
+    /// Returns a bool for whether an AI action can be started on a target entity, but not if it will actually be fulfilled
+    /// In the process, raises a <see cref="StationAiActionAttemptEvent"/> on it.
+    ///
+    /// Returns false if <paramref name="targetAiWhitelistComponent"/> is missing.
+    /// </summary>
+    /// <param name="targetAiWhitelistComponent">Will try to be found if missing. Not null when this returns true.</param>
+    // these NotNullWhens are
+    public bool TryTargettedAiAction(EntityUid target, [NotNullWhen(true)] ref StationAiWhitelistComponent? targetAiWhitelistComponent, out StationAiActionAttemptEvent aiActionAttemptEvent)
+    {
+        aiActionAttemptEvent = AttemptTargettedAiAction(target);
+
+        if (targetAiWhitelistComponent == null && !TryComp(target, out targetAiWhitelistComponent))
+            return false;
+
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryTargettedAiAction(EntityUid target, out StationAiActionAttemptEvent aiActionAttemptEvent)
+    {
+        aiActionAttemptEvent = AttemptTargettedAiAction(target);
+
+        if (!TryComp<StationAiWhitelistComponent>(target, out _))
+            return false;
+
+        return true;
     }
 }
 

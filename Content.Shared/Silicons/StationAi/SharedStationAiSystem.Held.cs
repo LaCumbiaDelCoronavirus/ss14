@@ -122,6 +122,16 @@ public abstract partial class SharedStationAiSystem
         if (ev.Actor == ev.Target)
             return;
 
+        // Don't allow the AI to interact with anything that it isn't allowed to (e.x. AI wire is cut or the device is signal-jammed (if applicable))
+        if (AttemptTargettedAiAction(ev.Target, out var attemptActionEvent) && attemptActionEvent.Cancelled)
+        {
+            if (attemptActionEvent.CancellationText != null)
+                ShowDeviceNotRespondingPopup(ent.Owner, attemptActionEvent.CancellationText);
+
+            ev.Cancel();
+            return;
+        }
+
         if (TryComp(ev.Actor, out StationAiHeldComponent? aiComp) &&
            (!TryComp(ev.Target, out StationAiWhitelistComponent? whitelistComponent) ||
             !ValidateAi((ev.Actor, aiComp))))
@@ -133,15 +143,6 @@ public abstract partial class SharedStationAiSystem
                 ev.Cancel();
                 return;
             }
-
-            // Don't allow the AI to interact with anything that it isn't allowed to (e.x. AI wire is cut or the device is signal-jammed (if applicable))
-            var attemptActionEvent = AttemptTargettedAiAction(ev.Target);
-            if (attemptActionEvent.Cancelled || (whitelistComponent != null && !whitelistComponent.Enabled))
-            {
-                if (attemptActionEvent.CancellationText != null)
-                    ShowDeviceNotRespondingPopup(ev.Actor, attemptActionEvent.CancellationText);
-            }
-
 
             ev.Cancel();
         }
@@ -156,11 +157,10 @@ public abstract partial class SharedStationAiSystem
             return;
         }
 
-        var attemptActionEvent = AttemptTargettedAiAction(args.Target!.Value);
-        if (attemptActionEvent.Cancelled || !whitelistComponent.Enabled)
+        if (TryTargettedAiAction(args.Target!.Value, ref whitelistComponent, out var aiActionAttempt) && aiActionAttempt.Cancelled)
         {
-            if (attemptActionEvent.CancellationText != null)
-                ShowDeviceNotRespondingPopup(ent.Owner, attemptActionEvent.CancellationText);
+            if (aiActionAttempt.CancellationText != null)
+                ShowDeviceNotRespondingPopup(ent.Owner, aiActionAttempt.CancellationText);
 
             args.Cancelled = true;
             return;
@@ -205,7 +205,7 @@ public abstract partial class SharedStationAiSystem
         args.Verbs.Add(verb);
     }
 
-    private void ShowDeviceNotRespondingPopup(EntityUid toEntity, string? popupLoc = null)
+    private void ShowDeviceNotRespondingPopup(EntityUid toEntity, LocId? popupLoc = null)
     {
         _popup.PopupClient(Loc.GetString(popupLoc ?? _deviceUnresponsiveLocId), toEntity, PopupType.MediumCaution);
     }
