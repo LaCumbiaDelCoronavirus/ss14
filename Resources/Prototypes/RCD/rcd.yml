@@ -1,8 +1,34 @@
-# Operations
+## Operations
+# Abstractions
 - type: rcd
   id: Invalid   # Hidden prototype - do not add to RCDs
   mode: Invalid
 
+- type: rcd
+  id: BaseTileConstructRcd
+  abstract: true
+  mode: Construct
+  form: Tile
+
+- type: rcd
+  id: BaseObjectConstructRcd
+  abstract: true
+  mode: Construct
+  form: Object
+
+
+- type: rcd
+  parent: BaseObjectConstructRcd
+  id: BaseElectricalConstructRcd
+  abstract: true
+  cost: 1
+  delay: 0
+  rules:
+  - !type:OnExposedSubfloorRule
+  rotation: Fixed
+  fx: EffectRCDConstruct0
+
+# Deconstructions
 - type: rcd
   id: Deconstruct
   name: rcd-component-deconstruct
@@ -32,6 +58,7 @@
 
 # Flooring
 - type: rcd
+  parent: BaseTileConstructRcd
   id: Plating
   name: rcd-component-plating
   category: WallsAndFlooring
@@ -42,10 +69,12 @@
   delay: 1
   collisionMask: InteractImpassable
   rules:
-    - CanBuildOnEmptyTile
+  - !type:OnEmptyTileRule
+    inverted: true
   fx: EffectRCDConstruct1
 
 - type: rcd
+  parent: BaseTileConstructRcd
   id: FloorSteel
   name: rcd-component-floor-steel
   category: WallsAndFlooring
@@ -56,9 +85,11 @@
   delay: 1
   collisionMask: InteractImpassable
   rules:
-    - CanBuildOnEmptyTile
+  - !type:OnEmptyTileRule
+    inverted: true
   fx: EffectRCDConstruct1
 
+# Catwalk
 - type: rcd
   id: Catwalk
   category: WallsAndFlooring
@@ -69,13 +100,13 @@
   delay: 1
   collisionMask: InteractImpassable
   rules:
-    - MustBuildOnSubfloor
-    - IsCatwalk
+  - !type:OnExposedSubfloorRule
   rotation: Fixed
   fx: EffectRCDConstruct1
 
 # Walls
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: WallSolid
   category: WallsAndFlooring
   sprite: /Textures/Interface/Radial/RCD/solid_wall.png
@@ -88,6 +119,7 @@
   fx: EffectRCDConstruct2
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: Grille
   category: WindowsAndGrilles
   sprite: /Textures/Interface/Radial/RCD/grille.png
@@ -101,6 +133,7 @@
 
 # Windows
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: Window
   category: WindowsAndGrilles
   sprite: /Textures/Interface/Radial/RCD/window.png
@@ -110,11 +143,12 @@
   delay: 2
   collisionMask: Impassable
   rules:
-    - IsWindow
+  - !type:TileSupportsWindowRule
   rotation: Fixed
   fx: EffectRCDConstruct2
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: WindowDirectional
   category: WindowsAndGrilles
   sprite: /Textures/Interface/Radial/RCD/directional.png
@@ -125,11 +159,12 @@
   collisionMask: Impassable
   collisionBounds: "-0.23,-0.49,0.23,-0.36"
   rules:
-    - IsWindow
+  - !type:TileSupportsWindowRule
   rotation: User
   fx: EffectRCDConstruct1
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: ReinforcedWindow
   category: WindowsAndGrilles
   sprite: /Textures/Interface/Radial/RCD/window_reinforced.png
@@ -139,11 +174,12 @@
   delay: 3
   collisionMask: Impassable
   rules:
-    - IsWindow
+  - !type:TileSupportsWindowRule
   rotation: User
   fx: EffectRCDConstruct3
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: WindowReinforcedDirectional
   category: WindowsAndGrilles
   sprite: /Textures/Interface/Radial/RCD/directional_reinforced.png
@@ -154,12 +190,13 @@
   collisionMask: Impassable
   collisionBounds: "-0.23,-0.49,0.23,-0.36"
   rules:
-    - IsWindow
+  - !type:TileSupportsWindowRule
   rotation: User
   fx: EffectRCDConstruct2
 
 # Airlocks
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: Airlock
   category: Airlocks
   sprite: /Textures/Interface/Radial/RCD/airlock.png
@@ -172,6 +209,7 @@
   fx: EffectRCDConstruct4
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: AirlockGlass
   category: Airlocks
   sprite: /Textures/Interface/Radial/RCD/glass_airlock.png
@@ -184,6 +222,7 @@
   fx: EffectRCDConstruct4
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: Firelock
   category: Airlocks
   sprite: /Textures/Interface/Radial/RCD/firelock.png
@@ -197,6 +236,7 @@
 
 # Lighting
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: TubeLight
   category: Lighting
   sprite: /Textures/Interface/Radial/RCD/tube_light.png
@@ -210,6 +250,7 @@
   fx: EffectRCDConstruct1
 
 - type: rcd
+  parent: BaseObjectConstructRcd
   id: BulbLight
   category: Lighting
   sprite: /Textures/Interface/Radial/RCD/bulb_light.png
@@ -224,52 +265,33 @@
 
 # Electrical
 - type: rcd
+  parent: BaseElectricalConstructRcd
   id: LVCable
   category: Electrical
   sprite: /Textures/Interface/Radial/RCD/lv_coil.png
   mode: ConstructObject
   prototype: CableApcExtension
-  cost: 1
-  delay: 0
-  rules:
-  - MustBuildOnSubfloor
-  rotation: Fixed
-  fx: EffectRCDConstruct0
 
 - type: rcd
+  parent: BaseElectricalConstructRcd
   id: MVCable
   category: Electrical
   sprite: /Textures/Interface/Radial/RCD/mv_coil.png
   mode: ConstructObject
   prototype: CableMV
-  cost: 1
-  delay: 0
-  rules:
-  - MustBuildOnSubfloor
-  rotation: Fixed
-  fx: EffectRCDConstruct0
 
 - type: rcd
+  parent: BaseElectricalConstructRcd
   id: HVCable
   category: Electrical
   sprite: /Textures/Interface/Radial/RCD/hv_coil.png
   mode: ConstructObject
   prototype: CableHV
-  cost: 1
-  delay: 0
-  rules:
-  - MustBuildOnSubfloor
-  rotation: Fixed
-  fx: EffectRCDConstruct0
 
 - type: rcd
+  parent: BaseElectricalConstructRcd
   id: CableTerminal
   category: Electrical
   sprite: /Textures/Interface/Radial/RCD/cable_terminal.png
   mode: ConstructObject
   prototype: CableTerminal
-  cost: 1
-  delay: 0
-  collisionMask: Impassable
-  rotation: User
-  fx: EffectRCDConstruct0

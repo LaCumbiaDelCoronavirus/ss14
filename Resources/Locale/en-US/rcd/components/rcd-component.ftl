@@ -30,6 +30,9 @@ rcd-component-cannot-build-on-subfloor-message = You can't build that on exposed
 rcd-component-cannot-build-on-occupied-tile-message = You can't build here, the space is already occupied!
 rcd-component-cannot-build-identical-tile = That tile already exists there!
 
+# Miscellaneous
+rcd-component-nothing-selected = You don't have anything selected!
+
 
 ### Category names
 

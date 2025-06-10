@@ -1,3 +1,5 @@
+using Content.Shared.DoAfter;
+using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 
@@ -16,8 +18,39 @@ public sealed class RCDConstructionGhostRotationEvent(NetEntity netEntity, Direc
     public readonly Direction Direction = direction;
 }
 
+
 [Serializable, NetSerializable]
-public enum RcdUiKey : byte
+public sealed partial class RCDDoAfterEvent : DoAfterEvent
 {
-    Key
+    [DataField(required: true)]
+    public NetCoordinates Location { get; private set; }
+
+    [DataField]
+    public Direction Direction { get; private set; }
+
+    [DataField]
+    public ProtoId<RCDPrototype> StartingProtoId { get; private set; }
+
+    [DataField]
+    public int Cost { get; private set; } = 1;
+
+    [DataField("fx")]
+    public NetEntity? Effect { get; private set; }
+
+    private RCDDoAfterEvent() { }
+
+    public RCDDoAfterEvent(NetCoordinates location, Direction direction, ProtoId<RCDPrototype> startingProtoId, int cost, NetEntity? effect = null)
+    {
+        Location = location;
+        Direction = direction;
+        StartingProtoId = startingProtoId;
+        Cost = cost;
+        Effect = effect;
+    }
+
+    public override DoAfterEvent Clone() => this;
 }
+
+
+[Serializable, NetSerializable]
+public enum RcdUiKey : byte { Key }

@@ -9,6 +9,7 @@ using Robust.Client.Player;
 using Robust.Client.State;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
+using Robust.Shared.Prototypes;
 
 namespace Content.Client.RCD;
 
@@ -16,6 +17,7 @@ public sealed class AlignRCDConstruction : PlacementMode
 {
     [Dependency] private readonly IEntityManager _entityManager = default!;
     [Dependency] private readonly IMapManager _mapManager = default!;
+    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
     private readonly SharedMapSystem _mapSystem;
     private readonly RCDSystem _rcdSystem;
     private readonly SharedTransformSystem _transformSystem;
@@ -71,7 +73,7 @@ public sealed class AlignRCDConstruction : PlacementMode
     {
         var player = _playerManager.LocalSession?.AttachedEntity;
 
-        // If the destination is out of interaction range, set the placer alpha to zero
+        // If the destination is out of interaction range, set the placer alpha to zero.
         if (!_entityManager.TryGetComponent<TransformComponent>(player, out var xform))
             return false;
 
@@ -81,11 +83,8 @@ public sealed class AlignRCDConstruction : PlacementMode
             return false;
         }
 
-        // Otherwise restore the alpha value
-        else
-        {
-            InvalidPlaceColor = InvalidPlaceColor.WithAlpha(PlaceColorBaseAlpha);
-        }
+        // Otherwise, restore the alpha value.
+        InvalidPlaceColor = InvalidPlaceColor.WithAlpha(PlaceColorBaseAlpha);
 
         // Determine if player is carrying an RCD in their active hand
         if (!_entityManager.TryGetComponent<HandsComponent>(player, out var hands))
@@ -93,12 +92,18 @@ public sealed class AlignRCDConstruction : PlacementMode
 
         var heldEntity = hands.ActiveHand?.HeldEntity;
 
-        if (!_entityManager.TryGetComponent<RCDComponent>(heldEntity, out var rcd))
+        if (!_entityManager.TryGetComponent<RCDComponent>(heldEntity, out var rcdComponent))
+            return false;
+
+
+        if (!_prototypeManager.TryIndex(rcdComponent.SelectedProtoId, out var selectedPrototype))
             return false;
 
         var gridUid = _transformSystem.GetGrid(position);
+
         if (!_entityManager.TryGetComponent<MapGridComponent>(gridUid, out var mapGrid))
             return false;
+
         var tile = _mapSystem.GetTileRef(gridUid.Value, mapGrid, position);
         var posVector = _mapSystem.TileIndicesFor(gridUid.Value, mapGrid, position);
 
@@ -111,7 +116,7 @@ public sealed class AlignRCDConstruction : PlacementMode
         var target = screen.GetClickedEntity(_transformSystem.ToMapCoordinates(_unalignedMouseCoords));
 
         // Determine if the RCD operation is valid or not
-        if (!_rcdSystem.IsRCDOperationStillValid(heldEntity.Value, rcd, gridUid.Value, mapGrid, tile, posVector, target, player.Value, false))
+        if (!_rcdSystem.CanRcdWork((heldEntity.Value, rcdComponent), minimumCharges: selectedPrototype.Cost))
             return false;
 
         return true;

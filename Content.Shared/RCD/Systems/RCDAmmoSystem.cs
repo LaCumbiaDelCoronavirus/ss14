@@ -10,8 +10,8 @@ namespace Content.Shared.RCD.Systems;
 
 public sealed class RCDAmmoSystem : EntitySystem
 {
-    [Dependency] private readonly SharedChargesSystem _sharedCharges = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private readonly SharedChargesSystem _sharedChargesSystem = default!;
+    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
 
     public override void Initialize()
@@ -22,42 +22,48 @@ public sealed class RCDAmmoSystem : EntitySystem
         SubscribeLocalEvent<RCDAmmoComponent, AfterInteractEvent>(OnAfterInteract);
     }
 
-    private void OnExamine(EntityUid uid, RCDAmmoComponent comp, ExaminedEvent args)
+    private void OnExamine(Entity<RCDAmmoComponent> rcdAmmo, ref ExaminedEvent args)
     {
         if (!args.IsInDetailsRange)
             return;
 
-        var examineMessage = Loc.GetString("rcd-ammo-component-on-examine", ("charges", comp.Charges));
-        args.PushText(examineMessage);
+        args.PushText(Loc.GetString("rcd-ammo-component-on-examine", ("charges", rcdAmmo.Comp.Charges)));
     }
 
-    private void OnAfterInteract(EntityUid uid, RCDAmmoComponent comp, AfterInteractEvent args)
+    private void OnAfterInteract(Entity<RCDAmmoComponent> rcdAmmo, ref AfterInteractEvent args)
     {
         if (args.Handled || !args.CanReach || !_timing.IsFirstTimePredicted)
             return;
 
-        if (args.Target is not { Valid: true } target ||
-            !HasComp<RCDComponent>(target) ||
-            !TryComp<LimitedChargesComponent>(target, out var charges))
+        if (args.Target is not { Valid: true } rcdUid ||
+            !HasComp<RCDComponent>(rcdUid) ||
+            !TryComp<LimitedChargesComponent>(rcdUid, out var rcdChargesComponent))
             return;
 
-        var current = _sharedCharges.GetCurrentCharges((target, charges));
+        var (ammoUid, rcdAmmoComponent) = rcdAmmo;
+
+        var currentRCDCharges = _sharedChargesSystem.GetCurrentCharges((rcdUid, rcdChargesComponent));
         var user = args.User;
+
         args.Handled = true;
-        var count = Math.Min(charges.MaxCharges - current, comp.Charges);
-        if (count <= 0)
+
+        var addedCharges = Math.Min(rcdChargesComponent.MaxCharges - currentRCDCharges, rcdAmmoComponent.Charges);
+
+        if (addedCharges <= 0)
         {
-            _popup.PopupClient(Loc.GetString("rcd-ammo-component-after-interact-full"), target, user);
+            _popupSystem.PopupClient(Loc.GetString("rcd-ammo-component-after-interact-full"), rcdUid, user);
             return;
         }
 
-        _popup.PopupClient(Loc.GetString("rcd-ammo-component-after-interact-refilled"), target, user);
-        _sharedCharges.AddCharges(target, count);
-        comp.Charges -= count;
-        Dirty(uid, comp);
+        _popupSystem.PopupClient(Loc.GetString("rcd-ammo-component-after-interact-refilled"), rcdUid, user);
+        _sharedChargesSystem.AddCharges(rcdUid, addedCharges);
 
-        // prevent having useless ammo with 0 charges
-        if (comp.Charges <= 0)
-            QueueDel(uid);
+        rcdAmmoComponent.Charges -= addedCharges;
+
+        // Prevent having useless ammo with 0 charges. If it still has any use, dirty it.
+        if (rcdAmmoComponent.Charges <= 0)
+            QueueDel(ammoUid);
+        else
+            Dirty(ammoUid, rcdAmmoComponent);
     }
 }

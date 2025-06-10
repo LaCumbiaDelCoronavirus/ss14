@@ -5,29 +5,29 @@ using Robust.Shared.Prototypes;
 namespace Content.Shared.RCD.Components;
 
 [RegisterComponent, NetworkedComponent]
-[Access(typeof(RCDSystem))]
+[Access(typeof(SharedRCDSystem))]
 public sealed partial class RCDDeconstructableComponent : Component
 {
     /// <summary>
-    /// Number of charges consumed when the deconstruction is completed
+    /// Number of charges consumed upon deconstruction.
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
     public int Cost = 1;
 
     /// <summary>
-    /// The length of the deconstruction 
+    /// The time taken for the deconstruction.
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
-    public float Delay = 1f;
+    public TimeSpan Delay = TimeSpan.FromSeconds(1.0);
 
     /// <summary>
-    /// The visual effect that plays during deconstruction
+    /// The prototype spawned during deconstruction, as a visual effect.
     /// </summary>
     [DataField("fx"), ViewVariables(VVAccess.ReadWrite)]
     public EntProtoId? Effect = null;
 
     /// <summary>
-    /// Toggles whether this entity is deconstructable or not
+    /// Whether or not this entity is currently deconstructable.
     /// </summary>
     [DataField, ViewVariables(VVAccess.ReadWrite)]
     public bool Deconstructable = true;
