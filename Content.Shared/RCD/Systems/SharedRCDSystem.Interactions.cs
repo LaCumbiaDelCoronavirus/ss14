@@ -45,8 +45,8 @@ public abstract partial class SharedRCDSystem
         if (!TryRcdAfterInteract(rcd, selectedRcdPrototype, ref args))
             return;
 
-        var operation = new ObjectRcdConstructionOperation(location, selectedRcdPrototype.Cost, selectedRcdPrototype.Delay,
-            selectedRcdPrototype.Effect, Direction.South, rcdComponent.SpaceTileDeconstructionProtoId);
+        //var operation = new ObjectRcdConstructionOperation(location, selectedRcdPrototype.Cost, selectedRcdPrototype.Delay,
+        //    selectedRcdPrototype.Effect, Direction.South, selectedRcdPrototype.ConstructedPrototype);
         // ObjectRcdConstructionOperation(EntityCoordinates Position, int Cost, float Delay, EntProtoId? Effect,
         // Direction Direction, EntProtoId ConstructedProtoId)
 
@@ -59,8 +59,10 @@ public abstract partial class SharedRCDSystem
                 return;
             }
 
-            if (!TryGetTileOperation((gridUid, mapGridComponent), location, rcdComponent, selectedRcdPrototype.Mode, out operation))
+            if (!TryGetTileOperation((gridUid, mapGridComponent), location, rcdComponent, selectedRcdPrototype.Mode, out var operation))
                 return;
+
+
         }
         else
         {
