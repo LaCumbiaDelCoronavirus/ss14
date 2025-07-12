@@ -15,12 +15,22 @@ namespace Content.Server.NodeContainer.NodeGroups
         ///     Causes gas in the PipeNet to react.
         /// </summary>
         void Update();
+
+        /// <summary>Does this pipenet have an input that depends on this pipenet?</summary>
+        public bool IsLooping { get; set; }
+
+        /// <summary>Is any pipenet, that this pipenet depends on, marked as <see cref="IsLooping">?</summary>
+        public bool HasLoopingDependency { get; set; }
     }
 
     [NodeGroup(NodeGroupID.Pipe)]
     public sealed class PipeNet : BaseNodeGroup, IPipeNet
     {
         [ViewVariables] public GasMixture Air { get; set; } = new() {Temperature = Atmospherics.T20C};
+
+        [ViewVariables(VVAccess.ReadOnly)] public bool IsLooping { get; set; } = false;
+
+        [ViewVariables(VVAccess.ReadOnly)] public bool HasLoopingDependency { get; set; } = false;
 
         [ViewVariables] private AtmosphereSystem? _atmosphereSystem;
 

@@ -682,11 +682,12 @@ namespace Content.Server.Atmos.EntitySystems
                         atmosphere.State = AtmosphereProcessingState.PipeNet;
                         continue;
                     case AtmosphereProcessingState.PipeNet:
-                        if (!ProcessPipeNets(atmosphere))
-                        {
-                            atmosphere.ProcessingPaused = true;
-                            return;
-                        }
+                        //if (!ProcessPipeNets(atmosphere))
+                        //{
+                        //    atmosphere.ProcessingPaused = true;
+                        //    return;
+                        //}
+                        GraphProcessPipeNets(atmosphere.PipeNets);
 
                         atmosphere.ProcessingPaused = false;
                         atmosphere.State = AtmosphereProcessingState.AtmosDevices;
