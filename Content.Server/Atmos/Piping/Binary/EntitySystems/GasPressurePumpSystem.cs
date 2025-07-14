@@ -1,6 +1,8 @@
+using Content.Server.Atmos.Components;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Atmos.Piping.Components;
 using Content.Server.NodeContainer.EntitySystems;
+using Content.Server.NodeContainer.NodeGroups;
 using Content.Server.NodeContainer.Nodes;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
@@ -24,36 +26,68 @@ public sealed class GasPressurePumpSystem : SharedGasPressurePumpSystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<GasPressurePumpComponent, AtmosDeviceUpdateEvent>(OnPumpUpdated);
+        SubscribeLocalEvent<GasPressurePumpComponent, ResolveGasMoverEvent>(OnPumpMoverResolve);
+        SubscribeLocalEvent<GasPressurePumpComponent, ProcessGasMoverEvent>(OnPumpUpdated);
+        SubscribeLocalEvent<GasPressurePumpComponent, GetDependantPipeNetsEvent>(OnPumpGetDependantNets);
     }
 
-    private void OnPumpUpdated(Entity<GasPressurePumpComponent> ent, ref AtmosDeviceUpdateEvent args)
+    private bool CanPumpWork(Entity<GasPressurePumpComponent> ent)
+        => ent.Comp.Enabled && _power.IsPowered(ent);
+
+    /// <summary>Gets the amount of gas that the pump would move into it's outlet, without actually moving it. Returns true if any gas is actually transferred.</summary>
+    private bool TryComputeMovedGas(Entity<GasPressurePumpComponent> ent, PipeNode inlet, PipeNode outlet, out GasMixture movedGas)
     {
-        if (!ent.Comp.Enabled
-            || !_power.IsPowered(ent)
-            || !_nodeContainer.TryGetNodes(ent.Owner, ent.Comp.InletName, ent.Comp.OutletName, out PipeNode? inlet, out PipeNode? outlet))
+        var inletAir = inlet.Air;
+        var outletAir = outlet.Air;
+
+        var outputStartingPressure = outletAir.Pressure;
+        if (outputStartingPressure >= ent.Comp.TargetPressure
+            || inletAir.TotalMoles <= 0
+            || inletAir.Temperature <= 0)
         {
-            _ambientSoundSystem.SetAmbience(ent, false);
-            return;
+            movedGas = new GasMixture(outletAir.Volume) { Temperature = outletAir.Temperature };
+            return false;
         }
 
-        var outputStartingPressure = outlet.Air.Pressure;
+        var pressureDelta = ent.Comp.TargetPressure - outputStartingPressure;
+        var transferMoles = (pressureDelta * outletAir.Volume) / (inlet.Air.Temperature * Atmospherics.R);
 
-        if (outputStartingPressure >= ent.Comp.TargetPressure)
+        movedGas = inlet.Air.GetRatio(transferMoles / inlet.Air.TotalMoles);
+        return true;
+    }
+
+    private void OnPumpMoverResolve(Entity<GasPressurePumpComponent> ent, ref ResolveGasMoverEvent args)
+    {
+        if (!CanPumpWork(ent) || !_nodeContainer.TryGetNodes(ent.Owner, ent.Comp.InletName, ent.Comp.OutletName, out PipeNode? _, out PipeNode? _))
+            return;
+
+        args.OutputThreshold = ent.Comp.TargetPressure;
+        args.Handled = true;
+    }
+
+    private void OnPumpUpdated(Entity<GasPressurePumpComponent> ent, ref ProcessGasMoverEvent args)
+    {
+        if (!CanPumpWork(ent) || !_nodeContainer.TryGetNodes(ent.Owner, ent.Comp.InletName, ent.Comp.OutletName, out PipeNode? inlet, out PipeNode? outlet))
+            return;
+
+        if (!TryComputeMovedGas(ent, inlet, outlet, out var removed))
         {
             _ambientSoundSystem.SetAmbience(ent, false);
             return; // No need to pump gas if target has been reached.
         }
 
-        if (inlet.Air.TotalMoles > 0 && inlet.Air.Temperature > 0)
-        {
-            // We calculate the necessary moles to transfer using our good ol' friend PV=nRT.
-            var pressureDelta = ent.Comp.TargetPressure - outputStartingPressure;
-            var transferMoles = (pressureDelta * outlet.Air.Volume) / (inlet.Air.Temperature * Atmospherics.R);
+        inlet.Air.Remove(removed);
+        _atmosphereSystem.Merge(outlet.Air, removed);
+        _ambientSoundSystem.SetAmbience(ent, removed.TotalMoles > 0f);
+    }
 
-            var removed = inlet.Air.Remove(transferMoles);
-            _atmosphereSystem.Merge(outlet.Air, removed);
-            _ambientSoundSystem.SetAmbience(ent, removed.TotalMoles > 0f);
-        }
+    private void OnPumpGetDependantNets(Entity<GasPressurePumpComponent> ent, ref GetDependantPipeNetsEvent args)
+    {
+        // Typecasting it is sus but there's not really a better way.
+        if (!_nodeContainer.TryGetNode(ent.Owner, ent.Comp.InletName, out PipeNode? outlet)
+            || outlet.NodeGroup is not IPipeNet outletNet)
+            return;
+
+        args.DependantPipeNets.Add(outletNet);
     }
 }

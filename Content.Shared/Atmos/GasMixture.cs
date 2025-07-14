@@ -162,6 +162,46 @@ namespace Content.Shared.Atmos
             return RemoveRatio(amount / TotalMoles);
         }
 
+        // I know this is a bit evil but if i just use both of these in `RemoveRatio` it'll be a bit more overhead.
+        /// <summary>Gets a <see cref="GasMixture"/> that is a portion of gas from this mixture, without removing it.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public GasMixture GetRatio(float ratio)
+        {
+            var peeked = new GasMixture(Volume) { Temperature = Temperature };
+            switch (ratio)
+            {
+                case <= 0:
+                    return peeked;
+                case > 1:
+                    ratio = 1;
+                    break;
+            }
+
+            Moles.CopyTo(peeked.Moles.AsSpan());
+            NumericsHelpers.Multiply(peeked.Moles, ratio);
+
+            return peeked;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Remove(GasMixture removed)
+        {
+            if (!Immutable)
+                NumericsHelpers.Sub(Moles, removed.Moles);
+
+            for (var i = 0; i < Moles.Length; i++)
+            {
+                var moles = Moles[i];
+                var otherMoles = removed.Moles[i];
+
+                if ((moles < Atmospherics.GasMinMoles || float.IsNaN(moles)) && !Immutable)
+                    Moles[i] = 0;
+
+                if (otherMoles < Atmospherics.GasMinMoles || float.IsNaN(otherMoles))
+                    removed.Moles[i] = 0;
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GasMixture RemoveRatio(float ratio)
         {

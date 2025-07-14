@@ -65,6 +65,7 @@
   - type: PipeColorVisuals
   - type: GasPressurePump
     enabled: false
+  - type: GasMover
   - type: ActivatableUI
     key: enum.GasPressurePumpUiKey.Key
   - type: ActivatableUIRequiresAnchor
@@ -125,6 +126,7 @@
     - type: PipeColorVisuals
     - type: GasVolumePump
       enabled: false
+    - type: GasMover
     - type: ActivatableUI
       key: enum.GasVolumePumpUiKey.Key
     - type: ActivatableUIRequiresAnchor
@@ -233,6 +235,7 @@
     - type: Appearance
     - type: PipeColorVisuals
     - type: GasPassiveGate
+    - type: GasMover
     - type: Construction
       graph: GasBinary
       node: passivegate
