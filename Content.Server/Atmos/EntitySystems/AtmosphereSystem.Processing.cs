@@ -595,6 +595,9 @@ namespace Content.Server.Atmos.EntitySystems
                 // We subtract it so it takes lost time into account.
                 atmosphere.Timer -= AtmosTime;
 
+                // This is probably the next tick already so.
+                _reactionEntitiesSpawned = 0;
+
                 var map = new Entity<MapAtmosphereComponent?>(xform.MapUid.Value, _mapAtmosQuery.CompOrNull(xform.MapUid.Value));
 
                 switch (atmosphere.State)

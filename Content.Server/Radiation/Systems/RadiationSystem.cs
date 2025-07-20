@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Content.Server.Radiation.Components;
 using Content.Shared.Radiation.Components;
 using Content.Shared.Radiation.Events;
@@ -5,6 +6,7 @@ using Content.Shared.Stacks;
 using Robust.Shared.Configuration;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
+using DependencyAttribute = Robust.Shared.IoC.DependencyAttribute;
 
 namespace Content.Server.Radiation.Systems;
 
@@ -17,6 +19,7 @@ public sealed partial class RadiationSystem : EntitySystem
     [Dependency] private readonly SharedMapSystem _maps = default!;
 
     private EntityQuery<RadiationBlockingContainerComponent> _blockerQuery;
+    private EntityQuery<RadiationSourceComponent> _sourceQuery;
     private EntityQuery<RadiationGridResistanceComponent> _resistanceQuery;
     private EntityQuery<MapGridComponent> _gridQuery;
     private EntityQuery<StackComponent> _stackQuery;
@@ -31,6 +34,7 @@ public sealed partial class RadiationSystem : EntitySystem
         InitRadBlocking();
 
         _blockerQuery = GetEntityQuery<RadiationBlockingContainerComponent>();
+        _sourceQuery = GetEntityQuery<RadiationSourceComponent>();
         _resistanceQuery = GetEntityQuery<RadiationGridResistanceComponent>();
         _gridQuery = GetEntityQuery<MapGridComponent>();
         _stackQuery = GetEntityQuery<StackComponent>();
@@ -61,6 +65,17 @@ public sealed partial class RadiationSystem : EntitySystem
             return;
 
         entity.Comp.Enabled = val;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetSourceIntensity(Entity<RadiationSourceComponent?> entity, float intensity)
+    {
+        // There's no equivalent for Resolve that takes an entityquery, so this is close enough if we want to be consistent with SetSourceEnabled
+        ref RadiationSourceComponent? sourceComponent = ref entity.Comp;
+        if (entity.Comp == null && !_sourceQuery.TryGetComponent(entity, out sourceComponent))
+            return;
+
+        sourceComponent!.Intensity = intensity;
     }
 
     /// <summary>

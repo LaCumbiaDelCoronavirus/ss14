@@ -45,9 +45,12 @@ public sealed partial class AtmosphereSystem
     private void OnGridAtmosphereInit(EntityUid uid, GridAtmosphereComponent component, ComponentInit args)
     {
         EnsureComp<GasTileOverlayComponent>(uid);
+        _mapGridQuery.TryGetComponent(uid, out var mapGridComponent);
+
         foreach (var tile in component.Tiles.Values)
         {
             tile.GridIndex = uid;
+            tile.MapGridComponent = mapGridComponent;
         }
     }
 

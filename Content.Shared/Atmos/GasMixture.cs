@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Content.Shared.Atmos.EntitySystems;
 using Content.Shared.Atmos.Reactions;
 using Robust.Shared.Serialization;
+using Robust.Shared.Spawners;
 using Robust.Shared.Utility;
 
 namespace Content.Shared.Atmos
@@ -38,8 +39,21 @@ namespace Content.Shared.Atmos
             0f,
         };
 
+        /// <summary>
+        ///     An array of nullable entities, where each may have a <see cref="TimedDespawnComponent"/>,
+        ///     with each element corresponding to a place in the <see cref="GasReactionEntity"/> enum.
+        /// </summary>
+        /// <remarks>
+        ///     The reason that this is an array of Entity&lt;TimedDespawnComponent?&gt;?s, and not just an array
+        ///     of <see cref="EntityUid"/>?s, is because storing the component is much faster than retrieving
+        ///     it every-time you want to use it. Although reaction entities are *expected* to have this component,
+        ///     it's still nullable.
+        /// </remarks>
+        // The true reason is that i didn't want to add an EntityQuery<TimedDespawnComponent> in AtmosphereSystem,
+        // because it would only really fit in TimedDespawnSystem, but that system is in engine code. So I did this,
+        // and it coincidentally also makes sense here.
         [ViewVariables]
-        public readonly EntityUid?[] ReactionEntities =
+        public readonly Entity<TimedDespawnComponent?>?[] ReactionEntities =
         {
             null,
         };

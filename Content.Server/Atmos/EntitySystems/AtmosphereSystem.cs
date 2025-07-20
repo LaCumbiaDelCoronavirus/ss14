@@ -3,9 +3,11 @@ using Content.Server.Atmos.Components;
 using Content.Server.Body.Systems;
 using Content.Server.Fluids.EntitySystems;
 using Content.Server.NodeContainer.EntitySystems;
+using Content.Server.Radiation.Systems;
 using Content.Shared.Atmos.EntitySystems;
 using Content.Shared.Decals;
 using Content.Shared.Doors.Components;
+using Content.Shared.Light.Components;
 using Content.Shared.Maps;
 using JetBrains.Annotations;
 using Robust.Server.GameObjects;
@@ -35,7 +37,7 @@ public sealed partial class AtmosphereSystem : SharedAtmosphereSystem
     [Dependency] private readonly SharedAudioSystem _audio = default!;
     [Dependency] private readonly SharedMapSystem _mapSystem = default!;
     [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly PointLightSystem _pointLightSystem = default!;
+    [Dependency] private readonly RadiationSystem _radiationSystem = default!;
     [Dependency] private readonly TileSystem _tile = default!;
     [Dependency] private readonly MapSystem _map = default!;
     [Dependency] public readonly PuddleSystem Puddle = default!;
@@ -43,11 +45,15 @@ public sealed partial class AtmosphereSystem : SharedAtmosphereSystem
     private const float ExposedUpdateDelay = 1f;
     private float _exposedTimer = 0f;
 
+    /// <summary>The number of reaction entities spawned in this tick.</summary>
+    private int _reactionEntitiesSpawned = 0;
+
     private EntityQuery<GridAtmosphereComponent> _atmosQuery;
     private EntityQuery<MapAtmosphereComponent> _mapAtmosQuery;
     private EntityQuery<MapGridComponent> _mapGridQuery;
     private EntityQuery<AirtightComponent> _airtightQuery;
     private EntityQuery<FirelockComponent> _firelockQuery;
+    private EntityQuery<TileEmissionComponent> _tileEmissionQuery;
     private HashSet<EntityUid> _entSet = new();
 
     private string[] _burntDecals = [];
@@ -69,6 +75,7 @@ public sealed partial class AtmosphereSystem : SharedAtmosphereSystem
         _atmosQuery = GetEntityQuery<GridAtmosphereComponent>();
         _airtightQuery = GetEntityQuery<AirtightComponent>();
         _firelockQuery = GetEntityQuery<FirelockComponent>();
+        _tileEmissionQuery = GetEntityQuery<TileEmissionComponent>();
 
         SubscribeLocalEvent<TileChangedEvent>(OnTileChanged);
         SubscribeLocalEvent<PrototypesReloadedEventArgs>(OnPrototypesReloaded);

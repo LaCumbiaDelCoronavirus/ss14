@@ -3,6 +3,7 @@ using Content.Server.Atmos.EntitySystems;
 using Content.Shared.Atmos;
 using Content.Shared.Maps;
 using Robust.Shared.Map;
+using Robust.Shared.Map.Components;
 
 namespace Content.Server.Atmos
 {
@@ -78,6 +79,8 @@ namespace Content.Server.Atmos
 
         [ViewVariables]
         public Vector2i GridIndices;
+        [ViewVariables]
+        public MapGridComponent? MapGridComponent;
 
         [ViewVariables]
         public ExcitedGroup? ExcitedGroup { get; set; }
@@ -135,15 +138,16 @@ namespace Content.Server.Atmos
         /// </summary>
         public AtmosphereSystem.AirtightData AirtightData;
 
-        public TileAtmosphere(EntityUid gridIndex, Vector2i gridIndices, GasMixture? mixture = null, bool immutable = false, bool space = false)
+        public TileAtmosphere(EntityUid gridIndex, Vector2i gridIndices, GasMixture? mixture = null, bool immutable = false, bool space = false, MapGridComponent? mapGridComponent = null)
         {
             GridIndex = gridIndex;
             GridIndices = gridIndices;
             Air = mixture;
             AirArchived = Air != null ? Air.Clone() : null;
             Space = space;
+            MapGridComponent = mapGridComponent;
 
-            if(immutable)
+            if (immutable)
                 Air?.MarkImmutable();
         }
 

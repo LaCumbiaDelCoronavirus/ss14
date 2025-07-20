@@ -5,7 +5,7 @@ namespace Content.Shared.Light.Components;
 /// <summary>
 /// Will draw lighting in a range around the tile.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState(true, true)]
 public sealed partial class TileEmissionComponent : Component
 {
     [DataField, AutoNetworkedField]

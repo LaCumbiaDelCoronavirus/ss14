@@ -53,6 +53,7 @@ namespace Content.Server.Atmos.Reactions
             }
 
             energyReleased /= heatScale; // adjust energy to make sure speedup doesn't cause mega temperature rise
+
             if (energyReleased > 0)
             {
                 var newHeatCapacity = atmosphereSystem.GetHeatCapacity(mixture, true);
@@ -61,26 +62,28 @@ namespace Content.Server.Atmos.Reactions
 
                 // ATMOS Radiation pulse here!
                 if (energyReleased > Atmospherics.TritiumMinimumEnergyForRadiation &&
-                     atmosphereSystem.TryGetMixtureHolderCoordinates(holder, holderUid, out var holderCoordinates))
-                {
-                    var radiationEntity = atmosphereSystem.EnsureMixtureEntity(
+                     atmosphereSystem.TryGetMixtureHolderCoordinates(holder, holderUid, out var holderCoordinates) &&
+                     atmosphereSystem.TryEnsureMixtureEntity(
                         mixture,
                         (byte)GasReactionEntity.TritiumRadiation,
                         RadiationPulseProtoId,
-                        holderCoordinates.Value);
+                        holderCoordinates.Value,
+                        out var radiationEntity))
+                {
+                    atmosphereSystem.RefreshEntityTimedDespawn(radiationEntity.Value);
 
-                    atmosphereSystem.RefreshEntityTimedDespawn(radiationEntity);
+                    var fullRadiation = (energyReleased - Atmospherics.TritiumMinimumEnergyForRadiation) / Atmospherics.TritiumRadiationFactor;
 
-                    var fullRadiation = (energyReleased + Atmospherics.TritiumMinimumEnergyForRadiation) / Atmospherics.TritiumRadiationFactor;
                     var radiation = MathF.Min(Atmospherics.MaxTritiumRadiation, fullRadiation);
+                    var radiationRatio = fullRadiation / Atmospherics.MaxTritiumRadiation;
 
                     // The light emitted from tritium-combustion is very, very loosely based off of cherenkov radiation (which is only because the light is blue and there's literally no other realistic factor at all ever don't quote me)
                     // Although green would be more fitting for trit (as trit is green), it's harder to recognise when it's not as intense, compared to blue.
                     // The light is to signal to people that "OH FUCK THERE'S ALOT OF RADS".
-                    atmosphereSystem.AdjustRadiationPulse(radiationEntity,
+                    atmosphereSystem.AdjustRadiationPulse(radiationEntity.Value,
                         radiation,
-                        Color.InterpolateBetween(WeakestRadiationPulseColor, StrongestRadiationPulseColor, radiation / Atmospherics.MaxTritiumRadiation),
-                        fullRadiation / Atmospherics.MaxTritiumRadiation);
+                        Color.InterpolateBetween(WeakestRadiationPulseColor, StrongestRadiationPulseColor, radiationRatio),
+                        MathF.Min(1, radiationRatio));
                 }
             }
 

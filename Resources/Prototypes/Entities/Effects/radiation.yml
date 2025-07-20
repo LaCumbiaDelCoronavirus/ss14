@@ -21,11 +21,9 @@
   description:
   components:
   - type: RadiationSource
-    intensity: 0 # This will depend on the strength of the tritium reaction so we keep it at 0 for now.
+    intensity: 3 # This will depend on the strength of the tritium reaction so we keep it at 0 for now.
     slope: 2
   - type: TimedDespawn
     lifetime: 2
-  - type: PointLight
-    enabled: true
-    radius: 2
-    energy: 1
+  - type: TileEmission
+    color: "#0af70a"

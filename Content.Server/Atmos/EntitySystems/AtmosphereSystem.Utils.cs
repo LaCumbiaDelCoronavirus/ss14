@@ -6,6 +6,7 @@ using Content.Server.Maps;
 using Content.Server.NodeContainer.Nodes;
 using Content.Shared.Atmos;
 using Content.Shared.Atmos.Components;
+using Content.Shared.Light.Components;
 using Content.Shared.Maps;
 using Content.Shared.Radiation.Components;
 using Robust.Server.GameObjects;
@@ -130,21 +131,15 @@ public partial class AtmosphereSystem
     // Both args are nullable because this is exposed for use by reactions to get the position of the reaction.
     public bool TryGetMixtureHolderCoordinates(IGasMixtureHolder? holder, EntityUid? holderEntity, [NotNullWhen(true)] out EntityCoordinates? holderCoordinates)
     {
+        if (holder is TileAtmosphere tileAtmosphere && tileAtmosphere.MapGridComponent != null)
+        {
+            holderCoordinates = _mapSystem.GridTileToLocal(tileAtmosphere.GridIndex, tileAtmosphere.MapGridComponent, tileAtmosphere.GridIndices);
+            return true;
+        }
+
         if (holderEntity != null)
         {
             holderCoordinates = new EntityCoordinates(holderEntity.Value, Vector2.Zero);
-            return true;
-        }
-
-        if (holder is PipeNode pipeNode)
-        {
-            holderCoordinates = new EntityCoordinates(pipeNode.Owner, Vector2.Zero);
-            return true;
-        }
-
-        if (holder is TileAtmosphere tileAtmosphere && _mapGridQuery.TryComp(tileAtmosphere.GridIndex, out var mapGridComponent))
-        {
-            holderCoordinates = _mapSystem.GridTileToLocal(tileAtmosphere.GridIndex, mapGridComponent, tileAtmosphere.GridIndices);
             return true;
         }
 
@@ -166,27 +161,38 @@ public partial class AtmosphereSystem
     /// </remarks>
     /// <param name="coordinates">The coordinates at which the entity should spawn, ideally inside of another entity if it's not part of a tile atmosphere.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public EntityUid EnsureMixtureEntity(GasMixture mixture, byte key, EntProtoId protoId, EntityCoordinates coordinates)
+    public bool TryEnsureMixtureEntity(GasMixture mixture, byte key, EntProtoId protoId, EntityCoordinates coordinates, [NotNullWhen(true)] out Entity<TimedDespawnComponent?>? entity)
     {
-        ref EntityUid? entityElement = ref mixture.ReactionEntities[key];
-        if (entityElement is { } keyEntity && Exists(keyEntity))
-            return keyEntity;
+        ref Entity<TimedDespawnComponent?>? entityElement = ref mixture.ReactionEntities[key];
+        if (entityElement is { } keyEntity)
+        {
+            entity = keyEntity;
+            return true;
+        }
 
-        var entity = Spawn(protoId, coordinates);
+        if (_reactionEntitiesSpawned > LagCheckIterations)
+        {
+            entity = null;
+            return false;
+        }
+
+        entity = SpawnAttachedTo(protoId, coordinates);
         entityElement = entity;
+        ++_reactionEntitiesSpawned;
 
-        return entity;
+        return true;
     }
 
     /// <summary>
     ///     Set's the lifetime of an entity's <see cref="TimedDespawnComponent"/>,
     ///     if it exists, to <see cref="Atmospherics.ReactionEntityDespawnTimer"/>.
     /// </summary>
+    // Nullable because you can't cast an Entity<T?> to Entity<T> without deconstructing and re-assembling the whole thing.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RefreshEntityTimedDespawn(EntityUid uid)
+    public void RefreshEntityTimedDespawn(Entity<TimedDespawnComponent?> entity)
     {
-        if (EnsureComp<TimedDespawnComponent>(uid, out var timedDespawnComponent))
-            timedDespawnComponent.Lifetime = Atmospherics.ReactionEntityDespawnTimer;
+        if (entity.Comp != null)
+            entity.Comp.Lifetime = Atmospherics.ReactionEntityDespawnTimer;
     }
 
     /// <summary>
@@ -195,21 +201,31 @@ public partial class AtmosphereSystem
     ///     and <see cref="PointLightComponent"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AdjustRadiationPulse(EntityUid uid, float radiationIntensity, Color color, float lightEnergy)
+    public void AdjustRadiationPulse(EntityUid uid, float radiationIntensity, Color color, float lightRadius)
     {
-        if (TryComp<RadiationSourceComponent>(uid, out var radiationSourceComponent))
-            radiationSourceComponent.Intensity = radiationIntensity;
+        _radiationSystem.SetSourceIntensity(uid, radiationIntensity);
 
-        if (TryComp<PointLightComponent>(uid, out var pointLightComponent))
+        if (_tileEmissionQuery.TryGetComponent(uid, out var emissionComponent))
         {
-            var visible = lightEnergy > 0.1f;
+            // If it's barely visible we just make it invisible.
+            if (lightRadius <= 0.08f)
+            {
+                if (emissionComponent.Range == 0)
+                    return;
 
-            _pointLightSystem.SetEnabled(uid, visible, pointLightComponent);
-            if (!visible)
+                emissionComponent.Range = 0;
+                DirtyField(uid, emissionComponent, nameof(emissionComponent.Range));
+
                 return;
+            }
 
-            _pointLightSystem.SetColor(uid, color, pointLightComponent);
-            _pointLightSystem.SetEnergy(uid, lightEnergy, pointLightComponent);
+            emissionComponent.Range = lightRadius;
+            emissionComponent.Color = color;
+
+            //Dirty(uid, emissionComponent);
+            DirtyFields(uid, emissionComponent, null,
+                nameof(emissionComponent.Range),
+                nameof(emissionComponent.Color));
         }
     }
 }
