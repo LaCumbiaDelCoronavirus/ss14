@@ -73,3 +73,57 @@
     sentMessage: prayer-popup-notify-monolith-sent
     notificationPrefix: prayer-chat-notify-monolith
     verb: prayer-verbs-worship
+
+# Possibly turn this into a functional display of nukie wins/losses like it actually is on Goonstation? Not right now though.
+- type: entity
+  abstract: true
+  parent: Memorial
+  id: BaseMemorialSyndicate
+  name: mission memorial
+  description: |
+    This monument stands as a testament to the unwavering spirit of the Syndicate.
+    It lists their losses and victories against enemies, and heroes of war forged from them.
+    The structure is made of polished granite.
+  components:
+  - type: Sprite
+    sprite: Structures/Furniture/Memorials/syndicate_memorial.rsi
+    offset: "0,0.25" # Sprite is 32x64 so let's make the base actually be on the tile.
+    noRot: true
+    drawdepth: Overdoors
+  - type: Transform
+    noRot: false
+  - type: Fixtures
+    fixtures:
+      fix1:
+        shape:
+          !type:PhysShapeAabb
+          bounds: "-0.35,-0.3,0.35,0.3" # slightly shorter than wide
+        mask:
+        - FullTileMask
+        layer:
+        - WallLayer
+  - type: SpriteFade
+
+- type: entity
+  parent: BaseMemorialSyndicate
+  id: MemorialSyndicateLeft
+  suffix: Syndicate, Left
+  components:
+  - type: Sprite
+    state: memorial_left
+
+- type: entity
+  parent: BaseMemorialSyndicate
+  id: MemorialSyndicateMid
+  suffix: Syndicate, Middle
+  components:
+  - type: Sprite
+    state: memorial_mid
+
+- type: entity
+  parent: BaseMemorialSyndicate
+  id: MemorialSyndicateRight
+  suffix: Syndicate, Right
+  components:
+  - type: Sprite
+    state: memorial_right
