@@ -8,13 +8,17 @@ using Content.Shared.Rejuvenate;
 using JetBrains.Annotations;
 using Robust.Shared.Utility;
 using Robust.Shared.Timing;
+using Robust.Server.GameObjects;
+using System.Runtime.CompilerServices;
+using DependencyAttribute = Robust.Shared.IoC.DependencyAttribute;
 
 namespace Content.Server.Power.EntitySystems
 {
     [UsedImplicitly]
-    public sealed class BatterySystem : SharedBatterySystem
+    public sealed partial class BatterySystem : SharedBatterySystem
     {
         [Dependency] private readonly IGameTiming _timing = default!;
+        [Dependency] private readonly AppearanceSystem _appearanceSystem = default!;
 
         public override void Initialize()
         {
@@ -26,6 +30,8 @@ namespace Content.Server.Power.EntitySystems
             SubscribeLocalEvent<BatteryComponent, PriceCalculationEvent>(CalculateBatteryPrice);
             SubscribeLocalEvent<BatteryComponent, ChangeChargeEvent>(OnChangeCharge);
             SubscribeLocalEvent<BatteryComponent, GetChargeEvent>(OnGetCharge);
+
+            InitializeVisuals();
 
             SubscribeLocalEvent<NetworkBatteryPreSync>(PreSync);
             SubscribeLocalEvent<NetworkBatteryPostSync>(PostSync);
@@ -235,6 +241,26 @@ namespace Content.Server.Power.EntitySystems
                 return false;
 
             return battery.CurrentCharge >= battery.MaxCharge;
+        }
+
+        public ChargeState CalculateNetBatteryChargeState(Entity<PowerNetworkBatteryComponent?> netBatteryEntity)
+        {
+            ref var netBatteryComponent = ref netBatteryEntity.Comp;
+            if (!Resolve(netBatteryEntity, ref netBatteryComponent, false))
+                return ChargeState.Still;
+
+            return CalculateNetBatteryComponentChargeState(netBatteryComponent);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ChargeState CalculateNetBatteryComponentChargeState(PowerNetworkBatteryComponent netBatteryComponent)
+        {
+            return (netBatteryComponent.CurrentSupply - netBatteryComponent.CurrentReceiving) switch
+            {
+                > 0 => ChargeState.Discharging,
+                < 0 => ChargeState.Charging,
+                _ => ChargeState.Still
+            };
         }
     }
 }

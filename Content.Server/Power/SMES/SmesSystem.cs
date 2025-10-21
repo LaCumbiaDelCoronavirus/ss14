@@ -14,6 +14,7 @@ internal sealed class SmesSystem : EntitySystem
 {
     [Dependency] private readonly IGameTiming _gameTiming = default!;
     [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private readonly BatterySystem _battery = default!;
 
     public override void Initialize()
     {
@@ -45,15 +46,6 @@ internal sealed class SmesSystem : EntitySystem
 
             _appearance.SetData(uid, SmesVisuals.LastChargeLevel, newLevel);
         }
-
-        var newChargeState = CalcChargeState(uid);
-        if (newChargeState != smes.LastChargeState && smes.LastChargeStateTime + smes.VisualsChangeDelay < _gameTiming.CurTime)
-        {
-            smes.LastChargeState = newChargeState;
-            smes.LastChargeStateTime = _gameTiming.CurTime;
-
-            _appearance.SetData(uid, SmesVisuals.LastChargeState, newChargeState);
-        }
     }
 
     private int CalcChargeLevel(EntityUid uid, BatteryComponent? battery = null)
@@ -62,18 +54,5 @@ internal sealed class SmesSystem : EntitySystem
             return 0;
 
         return ContentHelpers.RoundToLevels(battery.CurrentCharge, battery.MaxCharge, 6);
-    }
-
-    private ChargeState CalcChargeState(EntityUid uid, PowerNetworkBatteryComponent? netBattery = null)
-    {
-        if (!Resolve(uid, ref netBattery, false))
-            return ChargeState.Still;
-
-        return (netBattery.CurrentSupply - netBattery.CurrentReceiving) switch
-        {
-            > 0 => ChargeState.Discharging,
-            < 0 => ChargeState.Charging,
-            _ => ChargeState.Still
-        };
     }
 }

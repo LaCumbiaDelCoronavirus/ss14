@@ -226,9 +226,24 @@
   - !type:AiInteractWireAction
   - !type:AccessWireAction
 
+# wirelayout for things that need both access-wire and ai-interact-wire
 - type: wireLayout
-  id: APC
-  dummyWires: 3
+  id: BaseAccessAndAiInteractLayout
   wires:
   - !type:AccessWireAction
   - !type:AiInteractWireAction
+
+- type: wireLayout
+  parent: BaseAccessAndAiInteractLayout
+  id: APC
+  dummyWires: 3
+
+- type: wireLayout
+  parent: BaseAccessAndAiInteractLayout
+  id: Substation
+  dummyWires: 4
+
+- type: wireLayout
+  parent: BaseAccessAndAiInteractLayout
+  id: SMES
+  dummyWires: 5

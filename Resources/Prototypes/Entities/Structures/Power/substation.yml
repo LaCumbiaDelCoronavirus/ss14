@@ -25,6 +25,15 @@
     supplyRampTolerance: 5000
     supplyRampRate: 1000
   - type: StationInfiniteBatteryTarget
+  - type: StationAiWhitelist
+
+  # Wires
+  - type: WiresPanel
+  - type: Wires
+    alwaysRandomize: true
+    boardName: wires-board-name-substation
+    layoutId: Substation
+  - type: WiresVisuals
 
   # Interface
   - type: BatteryInterface
@@ -36,6 +45,8 @@
     interfaces:
       enum.BatteryUiKey.Key:
         type: BatteryBoundUserInterface
+      enum.WiresUiKey.Key:
+        type: WiresBoundUserInterface
   - type: ActivatableUI
     key: enum.BatteryUiKey.Key
 
@@ -74,15 +85,6 @@
   placement:
     mode: SnapgridCenter
   components:
-  - type: Sprite # TODO: add sprite for maintenance panel open
-    sprite: Structures/Power/substation.rsi
-    snapCardinals: true
-    layers:
-    - state: substation
-    - state: screen
-      shader: unshaded
-    - state: full
-      shader: unshaded
   - type: Battery
     maxCharge: 2500000
     startingCharge: 0
@@ -121,14 +123,13 @@
         gasMixture:
           volume: 1000
           moles:
-            CarbonDioxide: 340.5701689 # carbon dioxide
+            CarbonDioxide: 340.5701689
           temperature: 373.15
   - type: Explosive
     explosionType: Default
     maxIntensity: 100
     intensitySlope: 2
     totalIntensity: 200
-  - type: WiresPanel
   - type: Machine
     board: SubstationMachineCircuitboard
   - type: AmbientSound
@@ -140,6 +141,26 @@
     requirePower: true
     highVoltageNode: input
     mediumVoltageNode: output
+
+  # Sprites
+  - type: Sprite # TODO: add sprite for maintenance panel open
+    sprite: Structures/Power/substation.rsi
+    snapCardinals: true
+    layers:
+    - state: substation
+    - state: screen
+      shader: unshaded
+    - map: ["enum.BatteryVisualLayers.Output"]
+      state: full
+      shader: unshaded
+  - type: BatteryVisualizer
+    chargeStateOverlays:
+    - enum.ChargeState.Charging:
+      outputState: charging
+    - enum.ChargeState.Still:
+      outputState: full
+    - enum.ChargeState.Discharging:
+      outputState: dead
 
 # Compact Wall Substation Base
 - type: entity
@@ -181,6 +202,9 @@
     - state: substation_wall
     - state: screen_wall
       shader: unshaded
+    - state: panel
+      map: ["enum.WiresVisualLayers.MaintenancePanel"]
+      visible: false
   - type: Battery
     maxCharge: 2000000
     startingCharge: 0
