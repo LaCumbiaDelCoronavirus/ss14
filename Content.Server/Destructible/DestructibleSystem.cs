@@ -4,16 +4,16 @@ using Content.Server.Administration.Logs;
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Body.Systems;
 using Content.Server.Construction;
-using Content.Server.Destructible.Thresholds;
 using Content.Server.Destructible.Thresholds.Behaviors;
 using Content.Server.Explosion.EntitySystems;
 using Content.Server.Fluids.EntitySystems;
 using Content.Server.Stack;
 using Content.Shared.Chemistry.EntitySystems;
-using Content.Shared.Damage;
+using Content.Shared.Construction;
 using Content.Shared.Damage.Systems;
 using Content.Shared.Database;
 using Content.Shared.Destructible;
+using Content.Shared.Destructible.Thresholds;
 using Content.Shared.Destructible.Thresholds.Triggers;
 using Content.Shared.FixedPoint;
 using Content.Shared.Humanoid;
@@ -48,7 +48,14 @@ namespace Content.Server.Destructible
         public override void Initialize()
         {
             base.Initialize();
+
+            SubscribeLocalEvent<DestructibleComponent, ComponentStartup>(OnDestructibleStartup);
             SubscribeLocalEvent<DestructibleComponent, DamageChangedEvent>(OnDamageChanged);
+        }
+
+        private void OnDestructibleStartup(Entity<DestructibleComponent> entity, ref ComponentStartup args)
+        {
+            entity.Comp.DestructionThreshold = DestroyedAtInternal(entity!);
         }
 
         /// <summary>
@@ -164,6 +171,7 @@ namespace Content.Server.Destructible
             }
         }
 
+        [Obsolete("Use DestructibleComponent.DestructionThreshold instead.")]
         public bool TryGetDestroyedAt(Entity<DestructibleComponent?> ent, [NotNullWhen(true)] out FixedPoint2? destroyedAt)
         {
             destroyedAt = null;
@@ -172,6 +180,15 @@ namespace Content.Server.Destructible
 
             destroyedAt = DestroyedAt(ent, ent.Comp);
             return true;
+        }
+
+        [Obsolete("Use DestructibleComponent.DestructionThreshold instead.")]
+        public FixedPoint2 DestroyedAt(EntityUid uid, DestructibleComponent? destructible = null)
+        {
+            if (!Resolve(uid, ref destructible, logMissing: false))
+                return FixedPoint2.MaxValue;
+
+            return destructible.DestructionThreshold;
         }
 
         // FFS this shouldn't be this hard. Maybe this should just be a field of the destructible component. Its not
@@ -183,15 +200,15 @@ namespace Content.Server.Destructible
         ///     This assumes that this entity has some sort of destruction or breakage behavior triggered by a
         ///     total-damage threshold.
         /// </remarks>
-        public FixedPoint2 DestroyedAt(EntityUid uid, DestructibleComponent? destructible = null)
+        private FixedPoint2 DestroyedAtInternal(Entity<DestructibleComponent?> entity)
         {
-            if (!Resolve(uid, ref destructible, logMissing: false))
+            if (!Resolve(entity, ref entity.Comp, logMissing: false))
                 return FixedPoint2.MaxValue;
 
             // We have nested for loops here, but the vast majority of components only have one threshold with 1-3 behaviors.
             // Really, this should probably just be a property of the damageable component.
             var damageNeeded = FixedPoint2.MaxValue;
-            foreach (var threshold in destructible.Thresholds)
+            foreach (var threshold in entity.Comp.Thresholds)
             {
                 if (threshold.Trigger is not DamageTrigger trigger)
                     continue;
