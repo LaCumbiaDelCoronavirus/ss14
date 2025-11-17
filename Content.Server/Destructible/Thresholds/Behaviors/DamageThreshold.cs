@@ -1,7 +1,7 @@
 using Content.Server.Destructible.Thresholds.Behaviors;
 using Content.Shared.Destructible.Thresholds.Triggers;
 
-namespace Content.Shared.Destructible.Thresholds;
+namespace Content.Server.Destructible.Thresholds;
 
 [DataDefinition]
 public sealed partial class DamageThreshold
