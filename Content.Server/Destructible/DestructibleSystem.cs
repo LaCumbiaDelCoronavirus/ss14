@@ -56,6 +56,7 @@ namespace Content.Server.Destructible
         private void OnDestructibleStartup(Entity<DestructibleComponent> entity, ref ComponentStartup args)
         {
             entity.Comp.DestructionThreshold = DestroyedAtInternal(entity!);
+            Dirty(entity);
         }
 
         /// <summary>
