@@ -710,7 +710,7 @@ namespace Content.Server.Database
                 .Select(dbPlayer => dbPlayer.LastRolledAntag)
                 .SingleOrDefaultAsync();
 
-            return lastRolledTimespan ?? TimeSpan.MinValue;
+            return lastRolledTimespan ?? TimeSpan.Zero;
         }
 
         #endregion
@@ -735,7 +735,8 @@ namespace Content.Server.Database
             {
                 db.DbContext.ServerBanHit.Add(new ServerBanHit
                 {
-                    ConnectionId = connection, BanId = ban.Id!.Value
+                    ConnectionId = connection,
+                    BanId = ban.Id!.Value
                 });
             }
 
