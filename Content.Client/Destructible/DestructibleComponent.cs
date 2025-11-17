@@ -1,6 +1,6 @@
 using Content.Shared.Destructible;
 
-namespace Content.Server.Destructible;
+namespace Content.Client.Destructible;
 
 /// <inheritdoc cref="SharedDestructibleComponent"/>
 [RegisterComponent]

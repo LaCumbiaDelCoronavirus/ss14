@@ -1,5 +1,5 @@
+using Content.Server.Destructible.Thresholds;
 using Content.Shared.Destructible;
-using Content.Shared.Destructible.Thresholds;
 
 namespace Content.Server.Destructible;
 
